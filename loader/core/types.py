@@ -540,6 +540,10 @@ class Requirements:
     _data = set()
 
     @classmethod
+    def has(cls) -> bool:
+        return len(cls._data) > 0
+
+    @classmethod
     def update(cls, data: Optional[Iterable[str]]) -> None:
         if data:
             cls._data.update(filter(None, map(str.strip, data)))

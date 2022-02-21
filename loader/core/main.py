@@ -147,11 +147,13 @@ def load_repos() -> None:
 
 
 def init_core() -> None:
-    log("Initializing Core ...")
+    log("Fetching Core ...")
 
     fetch_core()
     if Sig.core_exists():
         return
+
+    log("Initializing Core ...")
 
     core = Repos.get_core()
     if core.failed:
@@ -171,11 +173,13 @@ def init_core() -> None:
 
 
 def init_repos() -> None:
-    log("Initializing Repos ...")
+    log("Fetching Repos ...")
 
     fetch_repos()
     if not Repos.has_repos() or Sig.repos_exists():
         return
+
+    log("Initializing Repos ...")
 
     repos = 0
     plugins = {}
@@ -323,15 +327,16 @@ def init_repos() -> None:
 
 
 def install_req() -> None:
-    log("Installing Requirements ...")
-
     pip = os.environ.get('CUSTOM_PIP_PACKAGES')
     if pip:
         Requirements.update(pip.split())
 
-    code, err = Requirements.install()
-    if code:
-        error(f"error code: [{code}]\n{err}")
+    if Requirements.has():
+        log("Installing Requirements ...")
+
+        code, err = Requirements.install()
+        if code:
+            error(f"error code: [{code}]\n{err}")
 
 
 def run_loader() -> None:
@@ -353,6 +358,8 @@ def initialize() -> None:
 
 
 def run_userge() -> None:
+    log("Starting Userge ...")
+
     p_p, c_p = Pipe()
     p = Process(name="userge", target=_run_userge, args=(c_p,))
     Session.set_process(p)
