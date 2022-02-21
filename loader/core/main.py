@@ -288,7 +288,7 @@ def init_repos() -> None:
         conflicts = grab_conflicts(requirements)
 
         if conflicts:
-            for conflict in grab_conflicts(requirements):
+            for conflict in conflicts:
                 for plg in tuple(plugins.values()):
                     packages = plg.config.packages
 

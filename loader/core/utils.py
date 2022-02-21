@@ -96,7 +96,7 @@ def grab_conflicts(requirements: Set[str]) -> Set[str]:
 
     pattern = []
 
-    for i in range(3):
+    for i in range(len(sequence)):
         seq = sequence[i]
 
         pattern.append(seq)

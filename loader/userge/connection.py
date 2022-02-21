@@ -18,10 +18,11 @@ def send_and_wait(*_):
 
 async def send_and_async_wait(*_):
     async with _A_LOCK:
-        _send(*_)
-        while not _poll():
-            await asyncio.sleep(0.5)
-        return _recv()
+        with _LOCK:
+            _send(*_)
+            while not _poll():
+                await asyncio.sleep(0.5)
+            return _recv()
 
 
 _CONN = None
