@@ -7,7 +7,7 @@ from importlib import import_module
 from multiprocessing import Process, Pipe, connection
 from os.path import exists, isfile, join
 from shutil import rmtree, which
-from signal import signal, SIGINT, SIGTERM
+from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
 
 from dotenv import load_dotenv
@@ -200,41 +200,48 @@ def init_repos() -> None:
 
         for plg in repo.iter_plugins():
             conf = plg.config
-            cond = conf.available
-            reason = "not available"
+            reason = None
 
-            if cond and RemovedPlugins.contains(plg.name):
-                cond = False
-                reason = f"removed"
+            for _ in ' ':
+                if not conf.available:
+                    reason = "not available"
+                    break
 
-            if cond and conf.min_core:
-                cond = conf.min_core <= core_version
-                reason = f"min core version {conf.min_core} required, current {core_version}"
+                if RemovedPlugins.contains(plg.name):
+                    reason = f"removed"
+                    break
 
-            if cond and conf.max_core:
-                cond = conf.max_core >= core_version
-                reason = f"max core version {conf.max_core} required, current {core_version}"
+                if conf.min_core and conf.min_core > core_version:
+                    reason = f"min core version {conf.min_core} required, current {core_version}"
+                    break
 
-            if cond and conf.client_type:
-                c_type = conf.client_type.lower()
-                cond = c_type == client_type
-                reason = f"client type {c_type} required, current: {client_type}"
+                if conf.max_core and conf.max_core < core_version:
+                    reason = f"max core version {conf.max_core} required, current {core_version}"
+                    break
 
-            if cond and conf.envs:
-                for env in conf.envs:
-                    if not os.environ.get(env):
-                        cond = False
-                        reason = f"env {env} required"
+                if conf.client_type and conf.client_type.lower() != client_type:
+                    c_type = conf.client_type.lower()
+                    reason = f"client type {c_type} required, current: {client_type}"
+                    break
+
+                if conf.envs:
+                    for env in conf.envs:
+                        if not os.environ.get(env):
+                            reason = f"env {env} required"
+                            break
+
+                    if reason:
                         break
 
-            if cond and conf.bins:
-                for bin_ in conf.bins:
-                    if not which(bin_):
-                        cond = False
-                        reason = f"bin {bin_} required"
+                if conf.bins:
+                    for bin_ in conf.bins:
+                        if not which(bin_):
+                            reason = f"bin {bin_} required"
+                            break
+
+                    if reason:
                         break
 
-            if cond:
                 old = plugins.get(plg.name)
                 plugins[plg.name] = plg
 
@@ -243,8 +250,10 @@ def init_repos() -> None:
                     log(f"\tPlugin: [{plg.cat}/{plg.name}] "
                         f"is overriding Repo: ({safe_url(old.repo_url)})")
             else:
-                ignored += 1
-                log(f"\tPlugin: [{plg.cat}/{plg.name}] was ignored due to: ({reason})")
+                continue
+
+            ignored += 1
+            log(f"\tPlugin: [{plg.cat}/{plg.name}] was ignored due to: ({reason})")
 
         repos += 1
         log(f"\t\tRepo: {safe_url(repo.info.url)} ignored: {ignored} overridden: {overridden}")
@@ -368,7 +377,7 @@ def run_userge() -> None:
         p_p.close()
         p.terminate()
 
-    for _ in (SIGINT, SIGTERM):
+    for _ in (SIGINT, SIGTERM, SIGABRT):
         signal(_, handle)
 
     p.start()

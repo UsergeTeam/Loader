@@ -5,6 +5,7 @@ import re
 import sys
 from configparser import ConfigParser, SectionProxy
 from contextlib import suppress
+from itertools import count
 from multiprocessing import Process
 from os.path import isdir, join, exists, isfile
 from shutil import copytree, rmtree
@@ -16,8 +17,8 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from ..types import RepoInfo, Update
 from .utils import error, call, safe_url
+from ..types import RepoInfo, Update
 
 _CACHE_PATH = ".rcache"
 
@@ -331,14 +332,15 @@ class _CoreRepo(_BaseRepo):
 
 class _PluginsRepo(_BaseRepo):
     _PATH = join(_CACHE_PATH, "repos")
+    _counter = count()
 
     def __init__(self, info: RepoInfo, path: str):
         super().__init__(info, path)
         self._plugins: List[_Plugin] = []
 
     @classmethod
-    def parse(cls, id_: int, priority: int, branch: str, version: str, url: str) -> '_PluginsRepo':
-        info = RepoInfo(id_, priority, branch, version, url)
+    def parse(cls, priority: int, branch: str, version: str, url: str) -> '_PluginsRepo':
+        info = RepoInfo(next(cls._counter), priority, branch, version, url)
         path = _BaseRepo.gen_path(cls._PATH, url)
 
         return cls(info, path)
@@ -375,6 +377,7 @@ class _PluginsRepo(_BaseRepo):
 class Repos:
     _core: Optional[_CoreRepo] = None
     _plugins: List[_PluginsRepo] = []
+
     _loaded = False
     _RE_REPO = re.compile(r"https://(?:ghp_[0-9A-z]{36}@)?github.com/.+/.+")
 
@@ -390,8 +393,8 @@ class Repos:
         version = data['version'] if data else ""
         cls._core = _CoreRepo.parse(branch, version)
 
-        for i, d in enumerate(db.repos.find(), start=1):
-            repo = _PluginsRepo.parse(i, d['priority'], d['branch'], d['version'], d['url'])
+        for d in db.repos.find():
+            repo = _PluginsRepo.parse(d['priority'], d['branch'], d['version'], d['url'])
             cls._plugins.append(repo)
 
         cls.sort()
@@ -430,10 +433,9 @@ class Repos:
         if not cls._RE_REPO.match(url) or cls.get(url):
             return
 
-        repo_id = cls._plugins[-1].info.id + 1 if cls._plugins else 1
         version = ""
 
-        cls._plugins.append(_PluginsRepo.parse(repo_id, priority, branch, version, url))
+        cls._plugins.append(_PluginsRepo.parse(priority, branch, version, url))
         cls.sort()
         Database.get().repos.insert_one({'priority': priority, 'branch': branch,
                                          'version': version, 'url': url})

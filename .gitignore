@@ -135,6 +135,7 @@ dmypy.json
 .profile.d/
 vendor/
 config.env
+config.env.tmp
 .vscode/
 .idea/
 *.session
