@@ -7,7 +7,7 @@ from importlib import import_module
 from multiprocessing import Process, Pipe, connection
 from os.path import exists, isfile, join
 from shutil import rmtree, which
-from signal import signal, SIGINT, SIGTERM, SIGHUP
+from signal import signal, SIGINT, SIGTERM
 from typing import Set
 
 from dotenv import load_dotenv
@@ -368,7 +368,7 @@ def run_userge() -> None:
         p_p.close()
         p.terminate()
 
-    for _ in (SIGINT, SIGTERM, SIGHUP):
+    for _ in (SIGINT, SIGTERM):
         signal(_, handle)
 
     p.start()
@@ -395,7 +395,3 @@ def load() -> None:
     run_userge()
     if Session.should_restart():
         load()
-
-
-if __name__ == '__main__':
-    load()
