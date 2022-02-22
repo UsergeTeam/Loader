@@ -324,6 +324,9 @@ class _CoreRepo(_BaseRepo):
 
         return []
 
+    def copy(self, source="userge", path="userge") -> None:
+        super().copy(source, path)
+
     def update(self) -> None:
         Database.get().config.update_one({'key': 'core'},
                                          {"$set": {'branch': self.info.branch,
@@ -571,6 +574,8 @@ class Tasks:
     def handle(cls, job: int, *arg) -> object:
         try:
             return cls._handlers[job](*arg)
+        except KeyError:
+            return KeyError(f"Invalid job id: {job}")
         except Exception as e:
             return e
 

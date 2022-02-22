@@ -5,8 +5,8 @@ import sys
 from contextlib import suppress
 from importlib import import_module
 from multiprocessing import Process, Pipe, connection
-from os.path import exists, isfile, join
-from shutil import rmtree, which
+from os.path import exists, isfile
+from shutil import which
 from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
 
@@ -16,7 +16,8 @@ from pymongo import MongoClient
 from . import MIN_PY, MAX_PY, CONF_PATH, CONF_TMP_PATH
 from .methods import fetch_core, fetch_repos
 from .types import Database, Repos, RemovedPlugins, Sig, Requirements, Session, Tasks
-from .utils import log, error, open_url, get_client_type, safe_url, grab_conflicts
+from .utils import log, error, open_url, get_client_type, safe_url, grab_conflicts, clean_core, \
+    clean_plugins
 
 
 def check_git() -> None:
@@ -163,8 +164,8 @@ def init_core() -> None:
     core.checkout_version()
 
     Requirements.update(core.grab_req())
-    rmtree("userge", ignore_errors=True)
-    core.copy("userge", "userge")
+    clean_core()
+    core.copy()
 
     core.checkout_branch()
 
@@ -316,13 +317,7 @@ def init_repos() -> None:
 
         Requirements.update(requirements)
 
-    plugins_path = join("userge", "plugins")
-
-    for cat in os.listdir(plugins_path):
-        if cat == "builtin":
-            continue
-
-        rmtree(join(plugins_path, cat), ignore_errors=True)
+    clean_plugins()
 
     for plg in plugins.values():
         plg.copy()

@@ -1,4 +1,5 @@
-__all__ = ['log', 'error', 'call', 'open_url', 'get_client_type', 'safe_url', 'grab_conflicts']
+__all__ = ['log', 'error', 'call', 'open_url', 'get_client_type',
+           'safe_url', 'grab_conflicts', 'clean_core', 'clean_plugins']
 
 import logging
 import os
@@ -6,6 +7,8 @@ import re
 import subprocess
 from functools import lru_cache
 from itertools import combinations
+from os.path import join
+from shutil import rmtree
 from signal import SIGTERM
 from typing import Optional, Tuple, Set, Dict
 from urllib.error import HTTPError
@@ -138,3 +141,17 @@ def grab_conflicts(requirements: Set[str]) -> Set[str]:
                 conflicts.add(name + arg + version)
 
     return conflicts
+
+
+def clean_core() -> None:
+    rmtree("userge", ignore_errors=True)
+
+
+def clean_plugins() -> None:
+    plugins_path = join("userge", "plugins")
+
+    for cat in os.listdir(plugins_path):
+        if cat == "builtin":
+            continue
+
+        rmtree(join(plugins_path, cat), ignore_errors=True)
