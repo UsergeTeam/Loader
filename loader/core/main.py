@@ -217,11 +217,8 @@ def init_repos() -> None:
 
             if cond and conf.client_type:
                 c_type = conf.client_type.lower()
-                if c_type == "dual":
-                    cond = True
-                else:
-                    cond = c_type == client_type
-                    reason = f"client type {c_type} required, current: {client_type}"
+                cond = c_type == client_type
+                reason = f"client type {c_type} required, current: {client_type}"
 
             if cond and conf.envs:
                 for env in conf.envs:
