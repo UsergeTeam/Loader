@@ -7,8 +7,8 @@ from typing import List, Optional, Callable
 
 from dotenv import set_key, unset_key
 
-from loader import job
-from loader.types import RepoInfo, Update
+from .. import job
+from ..types import RepoInfo, Update
 from . import CONF_TMP_PATH
 from .types import Tasks, Session, Repos, RemovedPlugins, Sig
 from .utils import error, safe_url

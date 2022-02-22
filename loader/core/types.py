@@ -16,7 +16,7 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from loader.types import RepoInfo, Update
+from ..types import RepoInfo, Update
 from .utils import error, call, safe_url
 
 _CACHE_PATH = ".rcache"
