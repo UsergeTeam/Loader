@@ -17,7 +17,7 @@ def _git() -> None:
     log("Checking Git ...")
 
     if not which("git"):
-        error(f"Required git !")
+        error("Required git !")
 
 
 def _py_version() -> None:
@@ -39,7 +39,7 @@ def _config_file() -> None:
 
         load_dotenv(CONF_PATH)
 
-    if isfile(CONF_TMP_PATH):
+    elif isfile(CONF_TMP_PATH):
         log(f"\tConfig file found : {CONF_TMP_PATH}, Exporting ...")
 
         load_dotenv(CONF_TMP_PATH, override=True)
@@ -79,7 +79,7 @@ def _vars() -> None:
         env.setdefault(k, v)
 
     workers = int(env.get('WORKERS') or 0)
-    env['WORKERS'] = str(min((16, min((os.cpu_count() + 4, workers)))))
+    env['WORKERS'] = str(min(16, max(os.cpu_count() + 4, workers)))
     env['MOTOR_MAX_WORKERS'] = env['WORKERS']
 
     down_path = env['DOWN_PATH']
@@ -92,7 +92,7 @@ def _vars() -> None:
         error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER")
 
     if cmd_trigger == '/' or sudo_trigger == '/':
-        error(f"You can't use / as CMD_TRIGGER or SUDO_TRIGGER")
+        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER")
 
     h_api = 'HEROKU_API_KEY'
     h_app = 'HEROKU_APP_NAME'
@@ -101,14 +101,13 @@ def _vars() -> None:
         for _ in (h_api, h_app):
             if _ in env:
                 env.pop(_)
+    else:
+        h_api = env.get(h_api)
+        h_app = env.get(h_app)
 
-    h_api = env.get(h_api)
-    h_app = env.get(h_app)
-
-    if h_api and not h_app or not h_api and h_app:
-        error("Need both HEROKU_API_KEY and HEROKU_APP_NAME vars !")
-
-    if h_api and h_app:
+        if not h_api or not h_app:
+            error("Need both HEROKU_API_KEY and HEROKU_APP_NAME vars !")
+    
         if len(h_api) != 36 or len(h_api.split('-')) != 5:
             error(f"Invalid HEROKU_API_KEY ({h_api}) !")
 
