@@ -1,4 +1,4 @@
-__all__ = ['Database', 'Repos', 'RemovedPlugins', 'Sig', 'Requirements', 'Session', 'Tasks']
+__all__ = ['Database', 'Repos', 'Constraints', 'Sig', 'Requirements', 'Session', 'Tasks']
 
 import os
 import re
@@ -18,7 +18,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from .utils import error, call, safe_url
-from ..types import RepoInfo, Update
+from ..types import RepoInfo, Update, Constraint
 
 _CACHE_PATH = ".rcache"
 
@@ -50,10 +50,10 @@ class Database:
         escaped = quote_plus(name) + ':' + quote_plus(pwd)
         return url.replace(u_and_p, escaped)
 
-    def __init__(self, config: Collection, repos: Collection, removed: Collection):
+    def __init__(self, config: Collection, repos: Collection, constraint: Collection):
         self._config = config
         self._repos = repos
-        self._removed = removed
+        self._constraint = constraint
 
     @classmethod
     def parse(cls, client: MongoClient) -> 'Database':
@@ -61,9 +61,9 @@ class Database:
 
         config = db["config"]
         repos = db["repos"]
-        removed = db["removed"]
+        constraint = db["constraint"]
 
-        return cls(config, repos, removed)
+        return cls(config, repos, constraint)
 
     @property
     def config(self) -> Collection:
@@ -74,8 +74,8 @@ class Database:
         return self._repos
 
     @property
-    def removed(self) -> Collection:
-        return self._removed
+    def constraint(self) -> Collection:
+        return self._constraint
 
 
 class _Parser:
@@ -140,18 +140,20 @@ class _Config:
 
 class _Plugin:
     def __init__(self, path: str, cat: str, name: str,
-                 config: _Config, repo_url: str):
+                 config: _Config, repo_name: str, repo_url: str):
         self.path = path
         self.cat = cat
         self.name = name
         self.config = config
+        self.repo_name = repo_name
         self.repo_url = repo_url
 
     @classmethod
     def parse(cls, path: str, cat: str, name: str, repo: RepoInfo) -> '_Plugin':
         config = _Config.parse(join(path, "config.ini"))
+        repo_name = '.'.join(repo.url.split('/')[-2:])
 
-        return cls(path, cat, name, config, repo.url)
+        return cls(path, cat, name, config, repo_name, repo.url)
 
     def copy(self) -> None:
         copytree(self.path, join("userge", "plugins", self.cat, self.name))
@@ -454,8 +456,188 @@ class Repos:
             Sig.repos_remove()
 
 
-class RemovedPlugins:
-    _data: Set[str] = set()
+class _ConstraintData:
+    def __init__(self, repo_name: Optional[str], plg_cat: Optional[str],
+                 plg_name: Optional[str], raw: str):
+        self.repo_name = repo_name
+        self.plg_cat = plg_cat
+        self.plg_name = plg_name
+        self.raw = raw
+
+    @classmethod
+    def parse(cls, data: str) -> '_ConstraintData':
+        data = data.strip().lower()
+        parts = data.split('/')
+        size = len(parts)
+
+        repo_name = None
+        plg_cat = None
+        plg_name = None
+
+        # possible cases
+        #
+        # plg_name
+        # plg_cat/
+        # repo_name/plg_name
+        # repo_name/plg_cat/
+        #
+
+        if size == 3:
+            repo_name = parts[0]
+            plg_cat = parts[1]
+
+        elif size == 2:
+            if parts[1]:
+                repo_name = parts[0]
+                plg_name = parts[1]
+            else:
+                plg_cat = parts[0]
+
+        else:
+            plg_name = parts[0]
+
+        return cls(repo_name, plg_cat, plg_name, data)
+
+    def match(self, repo_name: str, plg_cat: str, plg_name: str) -> bool:
+        if self.repo_name and self.repo_name != repo_name:
+            return False
+
+        if self.plg_cat and self.plg_cat != plg_cat:
+            return False
+
+        if self.plg_name and self.plg_name != plg_name:
+            return False
+
+        if self.repo_name or self.plg_cat or self.plg_name:
+            return True
+
+        return False
+
+    def __str__(self) -> str:
+        return self.raw
+
+
+class _Constraint:
+    def __init__(self):
+        self._data: List[_ConstraintData] = []
+
+    def add(self, data: List[str]) -> List[str]:
+        added = []
+
+        for d in set(map(lambda _: _.strip().lower(), data)):
+            if all(map(lambda _: _.raw != d, self._data)):
+                self._data.append(_ConstraintData.parse(d.strip()))
+                added.append(d)
+
+        return added
+
+    def remove(self, data: List[str]) -> List[str]:
+        removed = []
+
+        for d in set(map(lambda _: _.strip().lower(), data)):
+            for cd in self._data:
+                if cd.raw == d:
+                    self._data.remove(cd)
+                    removed.append(d)
+                    break
+
+        return removed
+
+    def clear(self) -> int:
+        size = len(self._data)
+        self._data.clear()
+
+        return size
+
+    def to_constraint(self) -> Optional[Constraint]:
+        if self._data:
+            return Constraint(self.get_type(), self._to_str_list())
+
+    def get_type(self) -> str:
+        raise NotImplementedError
+
+    def _to_str_list(self) -> List[str]:
+        return list(map(str, self._data))
+
+    def empty(self) -> bool:
+        return len(self._data) == 0
+
+    def match(self, *args: str) -> bool:
+        for part in self._data:
+            if part.match(*args):
+                return True
+
+        return False
+
+    def __str__(self) -> str:
+        return self.get_type() + '(' + str(self._to_str_list()) + ')'
+
+
+class _Include(_Constraint):
+    def get_type(self) -> str:
+        return "include"
+
+
+class _Exclude(_Constraint):
+    def get_type(self) -> str:
+        return "exclude"
+
+
+class _In(_Constraint):
+    def get_type(self) -> str:
+        return "in"
+
+
+class _Constraints:
+    def __init__(self, *data: _Constraint):
+        self._data = data
+
+    def get(self, c_type: str) -> Optional[_Constraint]:
+        c_type = c_type.strip().lower()
+
+        for const in self._data:
+            if const.get_type() == c_type:
+                return const
+
+    def remove(self, data: List[str]) -> List[str]:
+        removed = []
+
+        for const in self._data:
+            removed.extend(const.remove(data))
+
+        return removed
+
+    def clear(self) -> int:
+        _count = 0
+
+        for const in self._data:
+            _count += const.clear()
+
+        return _count
+
+    def to_constraints(self) -> List[Constraint]:
+        return list(filter(None, map(_Constraint.to_constraint, self._data)))
+
+    def match(self, *args: str) -> Optional[_Constraint]:
+        for const in self._data:
+            if const.empty():
+                continue
+
+            if isinstance(const, _Include):
+                if const.match(*args):
+                    break
+
+            elif isinstance(const, _Exclude):
+                if const.match(*args):
+                    return const
+
+            elif isinstance(const, _In):
+                if not const.match(*args):
+                    return const
+
+
+class Constraints:
+    _data = _Constraints(_Include(), _Exclude(), _In())
     _loaded = False
 
     @classmethod
@@ -463,43 +645,76 @@ class RemovedPlugins:
         if cls._loaded:
             return
 
-        for d in Database.get().removed.find():
-            cls._data.add(d['name'])
+        for d in Database.get().constraint.find():
+            c_type = d['type']
+            data = d['data']
+
+            const = cls._data.get(c_type)
+
+            if const:
+                const.add([data])
 
         cls._loaded = True
 
     @classmethod
-    def add(cls, names: List[str]) -> None:
-        to_add = set(map(str.strip, names)).difference(cls._data)
+    def add(cls, c_type: str, data: List[str]) -> None:
+        const = cls._data.get(c_type)
+
+        if not const:
+            return
+
+        to_add = const.add(data)
 
         if to_add:
-            cls._data.update(to_add)
-            Database.get().removed.insert_many(map(lambda _: dict(name=_), to_add))
+            Database.get().constraint.insert_many(
+                map(lambda _: dict(type=const.get_type(), data=_), to_add))
+
             Sig.repos_remove()
 
     @classmethod
-    def remove(cls, names: List[str]) -> None:
-        to_remove = cls._data.intersection(set(map(str.strip, names)))
+    def remove(cls, c_type: Optional[str], data: List[str]) -> None:
+        if c_type:
+            const = cls._data.get(c_type)
+
+            if not const:
+                return
+
+            to_remove = const.remove(data)
+        else:
+            to_remove = cls._data.remove(data)
 
         if to_remove:
-            cls._data.difference_update(to_remove)
-            Database.get().removed.delete_many({'name': {'$in': to_remove}})
+            _data = {'data': {'$in': to_remove}}
+
+            if c_type:
+                _data['type'] = c_type.strip().lower()
+
+            Database.get().constraint.delete_many(_data)
             Sig.repos_remove()
 
     @classmethod
-    def contains(cls, name: str) -> bool:
-        return name in cls._data
+    def clear(cls, c_type: Optional[str]) -> None:
+        if c_type:
+            const = cls._data.get(c_type)
 
-    @classmethod
-    def get(cls) -> List[str]:
-        return list(cls._data)
+            if not const:
+                return
 
-    @classmethod
-    def clear(cls) -> None:
-        if cls._data:
-            cls._data.clear()
-            Database.get().removed.drop()
+            _count = const.clear()
+        else:
+            _count = cls._data.clear()
+
+        if _count:
+            Database.get().constraint.drop()
             Sig.repos_remove()
+
+    @classmethod
+    def get(cls) -> List[Constraint]:
+        return cls._data.to_constraints()
+
+    @classmethod
+    def match(cls, plg: _Plugin) -> Optional[_Constraint]:
+        return cls._data.match(plg.repo_name.lower(), plg.cat.lower(), plg.name.lower())
 
 
 class Sig:

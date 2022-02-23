@@ -30,6 +30,8 @@ _CONN = None
 
 def _set(conn: connection.Connection) -> None:
     global _CONN
+    if not isinstance(conn, connection.Connection):
+        raise ValueError(f"invalid connection type: {type(conn)}")
     if isinstance(_CONN, connection.Connection):
         _CONN.close()
     _CONN = conn

@@ -17,7 +17,7 @@ def _git() -> None:
     log("Checking Git ...")
 
     if not which("git"):
-        error(f"Required git !")
+        error("Required git !")
 
 
 def _py_version() -> None:
@@ -92,7 +92,7 @@ def _vars() -> None:
         error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER")
 
     if cmd_trigger == '/' or sudo_trigger == '/':
-        error(f"You can't use / as CMD_TRIGGER or SUDO_TRIGGER")
+        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER")
 
     h_api = 'HEROKU_API_KEY'
     h_app = 'HEROKU_APP_NAME'

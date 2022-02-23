@@ -2,25 +2,25 @@ __all__ = ['load']
 
 import os
 from contextlib import suppress
-from importlib import import_module
-from multiprocessing import Process, Pipe, connection
+from multiprocessing import Process, Pipe, set_start_method
 from shutil import which
 from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
 
 from .checks import do_checks
 from .methods import fetch_core, fetch_repos
-from .types import Repos, RemovedPlugins, Sig, Requirements, Session, Tasks
+from .types import Repos, Constraints, Sig, Requirements, Session, Tasks
 from .utils import log, error, get_client_type, safe_url, grab_conflicts, clean_core, \
     clean_plugins
 from .. import __version__
+from ..userge.main import run
 
 
-def load_repos() -> None:
-    log("Loading Repos ...")
+def load_data() -> None:
+    log("Loading Data ...")
 
     Repos.load()
-    RemovedPlugins.load()
+    Constraints.load()
 
 
 def init_core() -> None:
@@ -72,6 +72,7 @@ def init_repos() -> None:
         repo.checkout_version()
         repo.load_plugins()
 
+        unique = 0
         ignored = 0
         overridden = 0
 
@@ -84,27 +85,30 @@ def init_repos() -> None:
                     reason = "not available"
                     break
 
-                if RemovedPlugins.contains(plg.name):
-                    reason = f"removed"
+                constraint = Constraints.match(plg)
+                if constraint:
+                    reason = f"constraint {constraint}"
                     break
 
                 if conf.min_core and conf.min_core > core_version:
-                    reason = f"min core version {conf.min_core} required, current {core_version}"
+                    reason = (f"min core version {conf.min_core} is required, "
+                              f"current: {core_version}")
                     break
 
                 if conf.max_core and conf.max_core < core_version:
-                    reason = f"max core version {conf.max_core} required, current {core_version}"
+                    reason = (f"max core version {conf.max_core} is required, "
+                              f"current: {core_version}")
                     break
 
                 if conf.client_type and conf.client_type.lower() != client_type:
                     c_type = conf.client_type.lower()
-                    reason = f"client type {c_type} required, current: {client_type}"
+                    reason = f"client type {c_type} is required, current: {client_type}"
                     break
 
                 if conf.envs:
                     for env in conf.envs:
                         if not os.environ.get(env):
-                            reason = f"env {env} required"
+                            reason = f"env {env} is required"
                             break
 
                     if reason:
@@ -113,7 +117,7 @@ def init_repos() -> None:
                 if conf.bins:
                     for bin_ in conf.bins:
                         if not which(bin_):
-                            reason = f"bin {bin_} required"
+                            reason = f"bin {bin_} is required"
                             break
 
                     if reason:
@@ -125,73 +129,79 @@ def init_repos() -> None:
                 if old:
                     overridden += 1
                     log(f"\tPlugin: [{plg.cat}/{plg.name}] "
-                        f"is overriding Repo: ({safe_url(old.repo_url)})")
+                        f"is overriding Repo: {safe_url(old.repo_url)}")
+                else:
+                    unique += 1
+
             else:
                 continue
 
             ignored += 1
-            log(f"\tPlugin: [{plg.cat}/{plg.name}] was ignored due to: ({reason})")
+            log(f"\tPlugin: [{plg.cat}/{plg.name}] was ignored due to: {reason}")
 
         repos += 1
-        log(f"\t\tRepo: {safe_url(repo.info.url)} ignored: {ignored} overridden: {overridden}")
+        log(f"\t\tRepo: {safe_url(repo.info.url)} "
+            f"ignored: {ignored} overridden: {overridden} unique: {unique}")
 
-    for c_plg in Repos.get_core().get_plugins():
-        if c_plg in plugins:
-            plg = plugins.pop(c_plg)
+    if plugins:
 
-            log(f"\tPlugin: [{plg.cat}/{plg.name}] was removed due to: "
-                f"matching builtin found")
+        for c_plg in Repos.get_core().get_plugins():
+            if c_plg in plugins:
+                plg = plugins.pop(c_plg)
 
-    def resolve_depends() -> None:
-        all_ok = False
+                log(f"\tPlugin: [{plg.cat}/{plg.name}] was removed due to: "
+                    "matching builtin found")
 
-        while plugins and not all_ok:
-            all_ok = True
+        def resolve_depends() -> None:
+            all_ok = False
 
-            for plg_ in tuple(plugins.values()):
-                deps = plg_.config.depends
-                if not deps:
-                    continue
+            while plugins and not all_ok:
+                all_ok = True
 
-                for dep in deps:
-                    if dep not in plugins:
-                        all_ok = False
-                        del plugins[plg_.name]
+                for plg_ in tuple(plugins.values()):
+                    deps = plg_.config.depends
+                    if not deps:
+                        continue
 
-                        log(f"\tPlugin: [{plg_.cat}/{plg_.name}] was removed due to: "
-                            f"plugin ({dep}) not found")
+                    for dep in deps:
+                        if dep not in plugins:
+                            all_ok = False
+                            del plugins[plg_.name]
 
-    def grab_requirements() -> Set[str]:
-        data = set()
+                            log(f"\tPlugin: [{plg_.cat}/{plg_.name}] was removed due to: "
+                                f"plugin [{dep}] not found")
 
-        for plg_ in plugins.values():
-            packages_ = plg_.config.packages
-            if packages_:
-                data.update(packages_)
+        def grab_requirements() -> Set[str]:
+            data = set()
 
-        return data
+            for plg_ in plugins.values():
+                packages_ = plg_.config.packages
+                if packages_:
+                    data.update(packages_)
 
-    resolve_depends()
-    requirements = grab_requirements()
+            return data
 
-    if requirements:
-        conflicts = grab_conflicts(requirements)
+        resolve_depends()
+        requirements = grab_requirements()
 
-        if conflicts:
-            for conflict in conflicts:
-                for plg in tuple(plugins.values()):
-                    packages = plg.config.packages
+        if requirements:
+            conflicts = grab_conflicts(requirements)
 
-                    if packages and conflict in packages:
-                        del plugins[plg.name]
+            if conflicts:
+                for conflict in conflicts:
+                    for plg in tuple(plugins.values()):
+                        packages = plg.config.packages
 
-                        log(f"\tPlugin: [{plg.cat}/{plg.name}] was removed due to: "
-                            f"conflicting requirement ({conflict}) found")
+                        if packages and conflict in packages:
+                            del plugins[plg.name]
 
-            resolve_depends()
-            requirements = grab_requirements()
+                            log(f"\tPlugin: [{plg.cat}/{plg.name}] was removed due to: "
+                                f"conflicting requirement [{conflict}] found")
 
-        Requirements.update(requirements)
+                resolve_depends()
+                requirements = grab_requirements()
+
+            Requirements.update(requirements)
 
     clean_plugins()
 
@@ -220,7 +230,7 @@ def install_req() -> None:
 
 
 def run_loader() -> None:
-    load_repos()
+    load_data()
     init_core()
     init_repos()
     install_req()
@@ -238,7 +248,7 @@ def run_userge() -> None:
     log("Starting Userge ...")
 
     p_p, c_p = Pipe()
-    p = Process(name="userge", target=_run_userge, args=(c_p,))
+    p = Process(name="userge", target=run, args=(c_p,))
     Session.set_process(p)
 
     def handle(*_):
@@ -260,11 +270,6 @@ def run_userge() -> None:
     p.close()
 
 
-def _run_userge(conn: connection.Connection) -> None:
-    getattr(import_module("loader.userge.connection"), "_set")(conn)
-    getattr(getattr(import_module("userge.main"), 'userge'), 'begin')()
-
-
 def load() -> None:
     if Session.should_init():
         initialize()
@@ -275,3 +280,4 @@ def load() -> None:
 
 
 log(f"Loader v{__version__}")
+set_start_method('spawn')

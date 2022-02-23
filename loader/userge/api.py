@@ -15,10 +15,10 @@ __all__ = [
     'set_repo_branch',
     'set_repo_version',
     'set_repo_priority',
-    'remove_plugins',
-    'restore_plugins',
-    'get_removed_plugins',
-    'clear_removed_plugins',
+    'add_constraints',
+    'remove_constraints',
+    'get_constraints',
+    'clear_constraints',
     'set_env',
     'unset_env']
 
@@ -93,20 +93,20 @@ async def set_repo_priority(repo_id: int, priority: int) -> None:
     return await send_and_async_wait(SET_REPO_PRIORITY, repo_id, priority)
 
 
-async def remove_plugins(names: List[str]) -> None:
-    return await send_and_async_wait(REMOVE_PLUGINS, names)
+async def add_constraints(c_type: str, data: List[str]) -> None:
+    return await send_and_async_wait(ADD_CONSTRAINTS, c_type, data)
 
 
-async def restore_plugins(names: List[str]) -> None:
-    return await send_and_async_wait(RESTORE_PLUGINS, names)
+async def remove_constraints(c_type: Optional[str], data: List[str]) -> None:
+    return await send_and_async_wait(REMOVE_CONSTRAINTS, c_type, data)
 
 
-async def get_removed_plugins() -> List[str]:
-    return await send_and_async_wait(GET_REMOVED_PLUGINS)
+async def get_constraints() -> List[str]:
+    return await send_and_async_wait(GET_CONSTRAINTS)
 
 
-async def clear_removed_plugins() -> None:
-    return await send_and_async_wait(CLEAR_REMOVED_PLUGINS)
+async def clear_constraints(c_type: Optional[str]) -> None:
+    return await send_and_async_wait(CLEAR_CONSTRAINTS, c_type)
 
 
 async def set_env(key: str, value: str) -> bool:
