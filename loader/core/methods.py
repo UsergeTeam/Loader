@@ -8,9 +8,9 @@ from typing import List, Optional, Callable
 from dotenv import set_key, unset_key
 
 from .. import job
-from ..types import RepoInfo, Update
+from ..types import RepoInfo, Update, Constraint
 from . import CONF_TMP_PATH
-from .types import Tasks, Session, Repos, RemovedPlugins, Sig
+from .types import Tasks, Session, Repos, Constraints, Sig
 from .utils import error, safe_url
 
 
@@ -159,24 +159,24 @@ def set_repo_priority(repo_id: int, priority: int) -> None:
         Sig.repos_remove()
 
 
-@on(job.REMOVE_PLUGINS)
-def remove_plugins(names: List[str]) -> None:
-    RemovedPlugins.add(names)
+@on(job.ADD_CONSTRAINTS)
+def add_constraints(c_type: str, data: List[str]) -> None:
+    Constraints.add(c_type, data)
 
 
-@on(job.RESTORE_PLUGINS)
-def restore_plugins(names: List[str]) -> None:
-    RemovedPlugins.remove(names)
+@on(job.REMOVE_CONSTRAINTS)
+def remove_constraints(c_type: Optional[str], data: List[str]) -> None:
+    Constraints.remove(c_type, data)
 
 
-@on(job.GET_REMOVED_PLUGINS)
-def get_removed_plugins() -> List[str]:
-    return RemovedPlugins.get()
+@on(job.GET_CONSTRAINTS)
+def get_constraints() -> List[Constraint]:
+    return Constraints.get()
 
 
-@on(job.CLEAR_REMOVED_PLUGINS)
-def clear_removed_plugins() -> None:
-    RemovedPlugins.clear()
+@on(job.CLEAR_CONSTRAINTS)
+def clear_constraints(c_type: Optional[str]) -> None:
+    Constraints.clear(c_type)
 
 
 @on(job.INVALIDATE_REPOS_CACHE)

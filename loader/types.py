@@ -1,3 +1,5 @@
+from typing import List
+
 from git import Commit
 
 
@@ -39,3 +41,12 @@ class Update:
     def __repr__(self) -> str:
         return (f"<Update summary={self.summary}, author={self.author}, "
                 f"version={self.version}, count={self.count}, url={self.url}>")
+
+
+class Constraint:
+    def __init__(self, type_: str, data: List[str]):
+        self.type = type_
+        self.data = data
+
+    def __repr__(self) -> str:
+        return f"<Constraint type={self.type}, data={self.data}>"
