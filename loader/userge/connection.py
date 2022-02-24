@@ -2,7 +2,7 @@ __all__ = ['send_and_wait', 'send_and_async_wait']
 
 import asyncio
 import atexit
-from multiprocessing import connection
+from multiprocessing.connection import PipeConnection as Connection
 from threading import Lock
 
 
@@ -38,11 +38,11 @@ def _recv():
     return result
 
 
-def _set(conn: connection.Connection) -> None:
+def _set(conn: Connection) -> None:
     _Conn.set(conn)
 
 
-def _get() -> connection.Connection:
+def _get() -> Connection:
     return _Conn.get()
 
 
@@ -61,14 +61,14 @@ class _Conn:
     _instance = None
 
     @classmethod
-    def set(cls, conn: connection.Connection) -> None:
-        if isinstance(cls._instance, connection.Connection):
+    def set(cls, conn: Connection) -> None:
+        if isinstance(cls._instance, Connection):
             cls._instance.close()
         cls._instance = conn
 
     @classmethod
-    def get(cls) -> connection.Connection:
-        if not isinstance(cls._instance, connection.Connection):
+    def get(cls) -> Connection:
+        if not isinstance(cls._instance, Connection):
             raise Exception("connection not found!")
         if cls._instance.closed:
             raise Exception("connection has been closed!")
@@ -76,6 +76,6 @@ class _Conn:
 
     @classmethod
     def close(cls) -> None:
-        if isinstance(cls._instance, connection.Connection):
+        if isinstance(cls._instance, Connection):
             cls._instance.close()
             cls._instance = None

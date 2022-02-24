@@ -1,5 +1,5 @@
 from importlib import import_module
-from multiprocessing.connection import Connection
+from multiprocessing.connection import PipeConnection as Connection
 
 
 def run(conn: Connection) -> None:
