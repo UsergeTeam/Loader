@@ -11,7 +11,7 @@ from .checks import do_checks
 from .methods import fetch_core, fetch_repos
 from .types import Repos, Constraints, Sig, Requirements, Session, Tasks
 from .utils import log, error, get_client_type, safe_url, grab_conflicts, clean_core, \
-    clean_plugins, printLogo
+    clean_plugins, print_logo
 from .. import __version__
 from ..userge.main import run
 
@@ -238,7 +238,7 @@ def run_loader() -> None:
 
 def initialize() -> None:
     try:
-        printLogo()
+        print_logo()
         do_checks()
         run_loader()
     except Exception as e:

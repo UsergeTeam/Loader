@@ -1,5 +1,5 @@
 __all__ = ['log', 'error', 'call', 'open_url', 'get_client_type', 'safe_url',
-           'grab_conflicts', 'clean_core', 'clean_plugins', 'printLogo']
+           'grab_conflicts', 'clean_core', 'clean_plugins', 'print_logo']
 
 import logging
 import os
@@ -157,19 +157,20 @@ def clean_plugins() -> None:
         rmtree(join(plugins_path, cat), ignore_errors=True)
 
 
-def _printLine():
+def _print_line():
     log('->- ->- ->- ->- ->- ->- ->- --- -<- -<- -<- -<- -<- -<- -<-')
 
 
-def printLogo():
-    _printLine()
+def print_logo():
+    _print_line()
+
     logo = r'''
      ________            __  __               ______
     /_  __/ /_  ___     / / / /_______  _____/ ____/__
      / / / __ \/ _ \   / / / / ___/ _ \/ ___/ / __/ _ \
     / / / / / /  __/  / /_/ (__  )  __/ /  / /_/ /  __/
    /_/ /_/ /_/\___/   \____/____/\___/_/   \____/\___/
-
 '''
     log(logo)
-    _printLine()
+
+    _print_line()

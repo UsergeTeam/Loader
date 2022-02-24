@@ -79,7 +79,7 @@ def _vars() -> None:
         env.setdefault(k, v)
 
     workers = int(env.get('WORKERS') or 0)
-    env['WORKERS'] = str(min(16, os.cpu_count() + 4, workers))
+    env['WORKERS'] = str(min(16, max(workers, 0) or os.cpu_count() + 4, os.cpu_count() + 4))
     env['MOTOR_MAX_WORKERS'] = env['WORKERS']
 
     down_path = env['DOWN_PATH']
