@@ -100,7 +100,11 @@ def init_repos() -> None:
                               f"current: {core_version}")
                     break
 
-                if conf.client_type and conf.client_type.lower() != client_type:
+                if (
+                    conf.client_type
+                    and client_type != "dual"
+                    and conf.client_type.lower() != client_type
+                ):
                     c_type = conf.client_type.lower()
                     reason = f"client type {c_type} is required, current: {client_type}"
                     break
