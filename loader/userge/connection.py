@@ -2,7 +2,6 @@ __all__ = ['send_and_wait', 'send_and_async_wait']
 
 import asyncio
 import atexit
-from multiprocessing import connection
 from threading import Lock
 
 
@@ -28,54 +27,58 @@ async def send_and_async_wait(*_):
 def _send(*_) -> None:
     if _poll():
         raise Exception("connection is being used!")
-    _get().send(_)
+    _Conn.send(_)
 
 
 def _recv():
-    result = _get().recv()
+    result = _Conn.recv()
     if isinstance(result, Exception):
         raise result
     return result
 
 
-def _set(conn: connection.Connection) -> None:
-    _Conn.set(conn)
-
-
-def _get() -> connection.Connection:
-    return _Conn.get()
-
-
 def _poll() -> bool:
-    return _get().poll()
+    return _Conn.poll()
 
 
-def _close():
-    _Conn.close()
-
-
-atexit.register(_close)
+def _set(conn) -> None:
+    _Conn.set(conn)
 
 
 class _Conn:
     _instance = None
 
     @classmethod
-    def set(cls, conn: connection.Connection) -> None:
-        if isinstance(cls._instance, connection.Connection):
+    def set(cls, conn) -> None:
+        if cls._instance:
             cls._instance.close()
         cls._instance = conn
 
     @classmethod
-    def get(cls) -> connection.Connection:
-        if not isinstance(cls._instance, connection.Connection):
+    def _get(cls):
+        if not cls._instance:
             raise Exception("connection not found!")
         if cls._instance.closed:
             raise Exception("connection has been closed!")
         return cls._instance
 
     @classmethod
+    def send(cls, _) -> None:
+        cls._get().send(_)
+
+    @classmethod
+    def recv(cls):
+        return cls._get().recv()
+
+    @classmethod
+    def poll(cls) -> bool:
+        return cls._get().poll()
+
+    @classmethod
     def close(cls) -> None:
-        if isinstance(cls._instance, connection.Connection):
+        if cls._instance:
             cls._instance.close()
             cls._instance = None
+
+
+atexit.register(_Conn.close)
