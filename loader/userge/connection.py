@@ -25,30 +25,6 @@ async def send_and_async_wait(*_):
             return _recv()
 
 
-_CONN = None
-
-
-def _set(conn: connection.Connection) -> None:
-    global _CONN
-    if not isinstance(conn, connection.Connection):
-        raise ValueError(f"invalid connection type: {type(conn)}")
-    if isinstance(_CONN, connection.Connection):
-        _CONN.close()
-    _CONN = conn
-
-
-def _get() -> connection.Connection:
-    if not isinstance(_CONN, connection.Connection):
-        raise Exception("connection not found!")
-    if _CONN.closed:
-        raise Exception("connection has been closed!")
-    return _CONN
-
-
-def _poll() -> bool:
-    return _get().poll()
-
-
 def _send(*_) -> None:
     if _poll():
         raise Exception("connection is being used!")
@@ -62,11 +38,44 @@ def _recv():
     return result
 
 
+def _set(conn: connection.Connection) -> None:
+    _Conn.set(conn)
+
+
+def _get() -> connection.Connection:
+    return _Conn.get()
+
+
+def _poll() -> bool:
+    return _get().poll()
+
+
 def _close():
-    global _CONN
-    if isinstance(_CONN, connection.Connection):
-        _CONN.close()
-        _CONN = None
+    _Conn.close()
 
 
 atexit.register(_close)
+
+
+class _Conn:
+    _instance = None
+
+    @classmethod
+    def set(cls, conn: connection.Connection) -> None:
+        if isinstance(cls._instance, connection.Connection):
+            cls._instance.close()
+        cls._instance = conn
+
+    @classmethod
+    def get(cls) -> connection.Connection:
+        if not isinstance(cls._instance, connection.Connection):
+            raise Exception("connection not found!")
+        if cls._instance.closed:
+            raise Exception("connection has been closed!")
+        return cls._instance
+
+    @classmethod
+    def close(cls) -> None:
+        if isinstance(cls._instance, connection.Connection):
+            cls._instance.close()
+            cls._instance = None
