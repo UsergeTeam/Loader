@@ -780,7 +780,7 @@ class Requirements:
 
     @classmethod
     def upgrade_pip(cls) -> None:
-        return call(sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip')
+        call(sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip')
 
 
 class Tasks:
