@@ -114,7 +114,7 @@ def _vars() -> None:
 
         headers = {
             'Accept': "application/vnd.heroku+json; version=3",
-            'Authorizarion': f"Bearer {h_api}"
+            'Authorization': f"Bearer {h_api}"
         }
 
         e = open_url("https://api.heroku.com/account/rate-limits", headers)
