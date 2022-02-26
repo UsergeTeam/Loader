@@ -773,9 +773,14 @@ class Requirements:
         if cls._data:
             data = cls._data.copy()
             cls._data.clear()
-            return call(sys.executable, '-m', 'pip', 'install', *data)
+            cls.upgrade_pip()
+            return call(sys.executable, '-m', 'pip', 'install', '--no-warn-script-location', *data)
 
         return 0, ''
+
+    @classmethod
+    def upgrade_pip(cls) -> None:
+        call(sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip')
 
 
 class Tasks:
