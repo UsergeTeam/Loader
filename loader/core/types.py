@@ -41,7 +41,7 @@ class Database:
         if not cls._instance:
             cls._instance = cls.parse(client)
 
-    _RE_UP = re.compile(r"(?<=//)(.+)(?=@cluster)")
+    _RE_UP = re.compile(r"(?<=//)(.+)(?=@\w+)")
 
     @classmethod
     def fix_url(cls, url: str) -> str:

@@ -112,7 +112,10 @@ def _vars() -> None:
         if len(h_api) != 36 or len(h_api.split('-')) != 5:
             error(f"Invalid HEROKU_API_KEY ({h_api}) !")
 
-        headers = {'Accept': "application/vnd.heroku+json; version=3", 'Bearer': h_api}
+        headers = {
+            'Accept': "application/vnd.heroku+json; version=3",
+            'Authorization': f"Bearer {h_api}"
+        }
 
         e = open_url("https://api.heroku.com/account/rate-limits", headers)
         if e:
