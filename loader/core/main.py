@@ -262,6 +262,7 @@ def run_userge() -> None:
 
     def handle(*_):
         p_p.close()
+
         try:
             os.kill(p.pid, CTRL_C_EVENT)
         except ValueError:

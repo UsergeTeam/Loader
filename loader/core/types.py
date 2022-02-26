@@ -190,7 +190,7 @@ class _BaseRepo:
                 self._git = GitRepo.clone_from(self.info.url, self._path)
             except GitCommandError as e:
                 self._error_code = e.status
-                self._stderr = e.stderr
+                self._stderr = (e.stderr or 'null').strip()
 
     def branch_exists(self, branch: str) -> bool:
         return branch and self._git and branch in self._git.heads
@@ -207,10 +207,16 @@ class _BaseRepo:
         if self.failed:
             return
 
-        for info in self._git.remote().fetch():
-            branch = info.ref.remote_head
-            if branch not in self._git.heads:
-                self._git.create_head(branch, info.ref).set_tracking_branch(info.ref)
+        try:
+            for info in self._git.remote().fetch():
+                branch = info.ref.remote_head
+                if branch not in self._git.heads:
+                    self._git.create_head(branch, info.ref).set_tracking_branch(info.ref)
+        except GitCommandError as e:
+            self._git = None
+            self._error_code = e.status
+            self._stderr = (e.stderr or 'null').strip()
+            return
 
         _changed = False
 
@@ -223,6 +229,7 @@ class _BaseRepo:
 
         if self._git.head.is_detached or self._git.head.ref != head:
             head.checkout(force=True)
+
         self._git.remote().pull(head.name, force=True)
 
         commit = self._get_commit(self.info.version) if self.info.version else None
@@ -773,13 +780,14 @@ class Requirements:
         if cls._data:
             data = cls._data.copy()
             cls._data.clear()
-            cls.upgrade_pip()
+
+            cls._upgrade_pip()
             return call(sys.executable, '-m', 'pip', 'install', '--no-warn-script-location', *data)
 
         return 0, ''
 
     @classmethod
-    def upgrade_pip(cls) -> None:
+    def _upgrade_pip(cls) -> None:
         call(sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip')
 
 

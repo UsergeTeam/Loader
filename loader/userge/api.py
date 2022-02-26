@@ -19,6 +19,7 @@ __all__ = [
     'remove_constraints',
     'get_constraints',
     'clear_constraints',
+    'invalidate_repos_cache',
     'set_env',
     'unset_env']
 
@@ -107,6 +108,10 @@ async def get_constraints() -> List[str]:
 
 async def clear_constraints(c_type: Optional[str]) -> None:
     return await send_and_async_wait(CLEAR_CONSTRAINTS, c_type)
+
+
+async def invalidate_repos_cache() -> None:
+    return await send_and_async_wait(INVALIDATE_REPOS_CACHE)
 
 
 async def set_env(key: str, value: str) -> bool:
