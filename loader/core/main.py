@@ -6,6 +6,10 @@ from multiprocessing import Process, Pipe, set_start_method
 from shutil import which
 from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
+try:
+    from signal import CTRL_C_EVENT
+except ImportError:
+    CTRL_C_EVENT = SIGTERM
 
 from .checks import do_checks
 from .methods import fetch_core, fetch_repos
@@ -258,7 +262,10 @@ def run_userge() -> None:
 
     def handle(*_):
         p_p.close()
-        p.terminate()
+        try:
+            os.kill(p.pid, CTRL_C_EVENT)
+        except ValueError:
+            raise KeyboardInterrupt
 
     for _ in (SIGINT, SIGTERM, SIGABRT):
         signal(_, handle)
@@ -275,14 +282,18 @@ def run_userge() -> None:
     p.close()
 
 
-def load() -> None:
+def _load() -> None:
     if Session.should_init():
         initialize()
 
     run_userge()
     if Session.should_restart():
-        load()
+        _load()
 
 
-log(f"Loader v{__version__}")
-set_start_method('spawn')
+def load() -> None:
+    log(f"Loader v{__version__}")
+    set_start_method('spawn')
+
+    with suppress(KeyboardInterrupt):
+        _load()
