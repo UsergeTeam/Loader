@@ -3,15 +3,15 @@ __all__ = ['fetch_core', 'fetch_repos']
 from contextlib import suppress
 from copy import copy
 from os import environ
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Union
 
 from dotenv import set_key, unset_key
 
-from .. import job
-from ..types import RepoInfo, Update, Constraint
 from . import CONF_TMP_PATH
 from .types import Tasks, Session, Repos, Constraints, Sig
 from .utils import error, safe_url
+from .. import job
+from ..types import RepoInfo, Update, Constraint
 
 
 def on(work: int) -> Callable[[Callable], Callable]:
@@ -54,6 +54,13 @@ def get_core() -> Optional[RepoInfo]:
     core = Repos.get_core()
     if core:
         return core.info
+
+
+@on(job.GET_REPO)
+def get_repo(repo_id: int) -> Optional[RepoInfo]:
+    repo = Repos.get(repo_id)
+    if repo:
+        return repo.info
 
 
 @on(job.GET_REPOS)
@@ -106,57 +113,23 @@ def get_repo_old_commits(repo_id: int, limit: int) -> Optional[List[Update]]:
         return repo.old_commits(limit)
 
 
-@on(job.SET_CORE_BRANCH)
-def set_core_branch(branch: str) -> None:
+@on(job.EDIT_CORE)
+def edit_core(branch: Optional[str], version: Optional[Union[int, str]]) -> bool:
     core = Repos.get_core()
-    if core and core.info.branch != branch and core.branch_exists(branch):
-        core.info.branch = branch
-        core.info.version = ""
+    if core:
+        return core.edit(branch, version)
 
-        core.update()
-        Sig.core_remove()
+    return False
 
 
-@on(job.SET_CORE_VERSION)
-def set_core_version(version: str) -> None:
-    core = Repos.get_core()
-    if core and core.info.version != version and core.version_exists(version):
-        core.info.version = version
-
-        core.update()
-        Sig.core_remove()
-
-
-@on(job.SET_REPO_BRANCH)
-def set_repo_branch(repo_id: int, branch: str) -> None:
+@on(job.EDIT_REPO)
+def edit_repo(repo_id: int, branch: Optional[str], version: Optional[Union[int, str]],
+              priority: Optional[int]) -> bool:
     repo = Repos.get(repo_id)
-    if repo and repo.info.branch != branch and repo.branch_exists(branch):
-        repo.info.branch = branch
-        repo.info.version = ""
+    if repo:
+        return repo.edit(branch, version, priority)
 
-        repo.update()
-        Sig.repos_remove()
-
-
-@on(job.SET_REPO_VERSION)
-def set_repo_version(repo_id: int, version: str) -> None:
-    repo = Repos.get(repo_id)
-    if repo and repo.info.version != version and repo.version_exists(version):
-        repo.info.version = version
-
-        repo.update()
-        Sig.repos_remove()
-
-
-@on(job.SET_REPO_PRIORITY)
-def set_repo_priority(repo_id: int, priority: int) -> None:
-    repo = Repos.get(repo_id)
-    if repo and repo.info.priority != priority:
-        repo.info.priority = priority
-
-        Repos.sort()
-        repo.update()
-        Sig.repos_remove()
+    return False
 
 
 @on(job.ADD_CONSTRAINTS)

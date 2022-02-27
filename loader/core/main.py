@@ -43,7 +43,14 @@ def init_core() -> None:
 
     core.checkout_version()
 
+    loader_version = core.grab_loader_version()
+
+    if loader_version:
+        if float(__version__) < float(loader_version):
+            error(f"min loader version: {loader_version} current: {__version__}")
+
     Requirements.update(core.grab_req())
+
     clean_core()
     core.copy()
 

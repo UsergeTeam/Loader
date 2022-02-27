@@ -4,19 +4,29 @@ from git import Commit
 
 
 class RepoInfo:
-    def __init__(self, id_: int, priority: int, branch: str,
-                 version: str, url: str):
+    def __init__(self, id_: int, name: str, priority: int,
+                 branch: str, version: str, url: str, head_url: str):
         self.id = id_
+        self.name = name
         self.priority = priority
         self.branch = branch
         self.version = version
         self.url = url
+        self.head_url = head_url
         self.count = 0
+        self.max_count = 0
         self.branches = set()
 
+    @classmethod
+    def parse(cls, id_: int, priority: int, branch: str, version: str, url: str) -> 'RepoInfo':
+        name = '.'.join(url.split('/')[-2:])
+        head_url = url.rstrip('/') + "/commit/" + version
+
+        return cls(id_, name, priority, branch, version, url, head_url)
+
     def __repr__(self) -> str:
-        return (f"<RepoInfo id={self.id}, priority={self.priority}, "
-                f"branch={self.branch}, count={self.count}, url={self.url}>")
+        return (f"<RepoInfo id={self.id}, name={self.name}, priority={self.priority}, "
+                f"branch={self.branch}, count={self.count}>")
 
 
 class Update:
@@ -34,7 +44,7 @@ class Update:
         author = commit.author.name
         version = commit.hexsha
         count = commit.count()
-        url = repo_url + "/commit/" + version
+        url = repo_url.rstrip('/') + "/commit/" + version
 
         return cls(summary, author, version, count, url)
 

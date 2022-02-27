@@ -151,7 +151,7 @@ class _Plugin:
     @classmethod
     def parse(cls, path: str, cat: str, name: str, repo: RepoInfo) -> '_Plugin':
         config = _Config.parse(join(path, "config.ini"))
-        repo_name = '.'.join(repo.url.split('/')[-2:])
+        repo_name = repo.name
 
         return cls(path, cat, name, config, repo_name, repo.url)
 
@@ -192,16 +192,33 @@ class _BaseRepo:
                 self._error_code = e.status
                 self._stderr = (e.stderr or 'null').strip()
 
-    def branch_exists(self, branch: str) -> bool:
+    def _branch_exists(self, branch: str) -> bool:
         return branch and self._git and branch in self._git.heads
 
-    def version_exists(self, version: str) -> bool:
+    def _version_exists(self, version: Union[int, str]) -> bool:
         return version and self._get_commit(version) is not None
 
-    def _get_commit(self, version: str) -> Optional[Commit]:
+    def _get_commit(self, version: Union[int, str]) -> Optional[Commit]:
         if self._git:
-            with suppress(BadName):
-                return self._git.commit(version)
+            if isinstance(version, int) or version.isnumeric():
+                commit = self._git.commit(self.info.branch)
+
+                input_count = int(version)
+                head_count = commit.count()
+
+                if input_count == head_count:
+                    return commit
+
+                if input_count < head_count:
+                    skip = head_count - input_count
+                    data = list(self._git.iter_commits(self.info.branch, max_count=1, skip=skip))
+
+                    if data:
+                        return data[0]
+
+            elif isinstance(version, str):
+                with suppress(BadName):
+                    return self._git.commit(version)
 
     def fetch(self) -> None:
         if self.failed:
@@ -220,7 +237,7 @@ class _BaseRepo:
 
         _changed = False
 
-        if self.branch_exists(self.info.branch):
+        if self._branch_exists(self.info.branch):
             head = self._git.heads[self.info.branch]
         else:
             head = self._git.heads[0]
@@ -239,10 +256,11 @@ class _BaseRepo:
             _changed = True
 
         self.info.count = (commit or head.commit).count()
+        self.info.max_count = head.commit.count()
         self.info.branches.update(head.name for head in self._git.heads)
 
         if _changed:
-            self.update()
+            self._update()
 
     def checkout_version(self) -> None:
         version = self.info.version
@@ -263,7 +281,7 @@ class _BaseRepo:
         data = []
         version = self.info.version
 
-        if self.version_exists(version):
+        if self._version_exists(version):
             found = False
             for commit in self._git.iter_commits(self.info.branch):
                 if commit.hexsha == version:
@@ -280,7 +298,7 @@ class _BaseRepo:
         data = []
         version = self.info.version
 
-        if limit > 0 and self.version_exists(version):
+        if limit > 0 and self._version_exists(version):
             found = False
             for commit in self._git.iter_commits(self.info.branch):
                 if not found:
@@ -303,7 +321,7 @@ class _BaseRepo:
     def gen_path(path: str, url: str) -> str:
         return join(path, '.'.join(url.split('/')[-2:]))
 
-    def update(self) -> None:
+    def _update(self) -> None:
         raise NotImplementedError
 
 
@@ -313,7 +331,7 @@ class _CoreRepo(_BaseRepo):
 
     @classmethod
     def parse(cls, branch: str, version: str) -> '_CoreRepo':
-        info = RepoInfo(-1, -1, branch, version, cls._URL)
+        info = RepoInfo.parse(-1, -1, branch, version, cls._URL)
         path = _BaseRepo.gen_path(cls._PATH, cls._URL)
 
         return cls(info, path)
@@ -325,6 +343,13 @@ class _CoreRepo(_BaseRepo):
             with open(req) as f:
                 return f.read().strip().split()
 
+    def grab_loader_version(self) -> Optional[str]:
+        loader_ = join(self._path, "min_loader.txt")
+
+        if isfile(loader_):
+            with open(loader_) as f:
+                return f.read().strip()
+
     def get_plugins(self) -> List[str]:
         cat_path = join(self._path, "plugins", "builtin")
 
@@ -333,10 +358,30 @@ class _CoreRepo(_BaseRepo):
 
         return []
 
+    def edit(self, branch: Optional[str], version: Optional[Union[int, str]]) -> bool:
+        _changed = False
+
+        if version and self.info.version != version and self._version_exists(version):
+            self.info.version = version
+
+            _changed = True
+
+        if branch and self.info.branch != branch and self._branch_exists(branch):
+            self.info.branch = branch
+            self.info.version = ""
+
+            _changed = True
+
+        if _changed:
+            self._update()
+            Sig.core_remove()
+
+        return _changed
+
     def copy(self, source="userge", path="userge") -> None:
         super().copy(source, path)
 
-    def update(self) -> None:
+    def _update(self) -> None:
         Database.get().config.update_one({'key': 'core'},
                                          {"$set": {'branch': self.info.branch,
                                                    'version': self.info.version}}, upsert=True)
@@ -352,7 +397,7 @@ class _PluginsRepo(_BaseRepo):
 
     @classmethod
     def parse(cls, priority: int, branch: str, version: str, url: str) -> '_PluginsRepo':
-        info = RepoInfo(next(cls._counter), priority, branch, version, url)
+        info = RepoInfo.parse(next(cls._counter), priority, branch, version, url)
         path = _BaseRepo.gen_path(cls._PATH, url)
 
         return cls(info, path)
@@ -376,10 +421,37 @@ class _PluginsRepo(_BaseRepo):
 
                 self._plugins.append(_Plugin.parse(plg_path, cat, plg, self.info))
 
+    def edit(self, branch: Optional[str], version: Optional[Union[int, str]],
+             priority: Optional[int]) -> bool:
+        _changed = False
+
+        if version and self.info.version != version and self._version_exists(version):
+            self.info.version = version
+
+            _changed = True
+
+        if self.info.branch != branch and self._branch_exists(branch):
+            self.info.branch = branch
+            self.info.version = ""
+
+            _changed = True
+
+        if self.info.priority != priority:
+            self.info.priority = priority
+
+            Repos.sort()
+            _changed = True
+
+        if _changed:
+            self._update()
+            Sig.repos_remove()
+
+        return _changed
+
     def iter_plugins(self) -> Iterator[_Plugin]:
         return iter(self._plugins)
 
-    def update(self) -> None:
+    def _update(self) -> None:
         Database.get().repos.update_one({'url': self.info.url},
                                         {"$set": {'branch': self.info.branch,
                                                   'version': self.info.version,

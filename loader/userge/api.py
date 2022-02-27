@@ -3,6 +3,7 @@ __all__ = [
     'fetch_core',
     'fetch_repos',
     'get_core',
+    'get_repo',
     'get_repos',
     'add_repo',
     'remove_repo',
@@ -10,8 +11,10 @@ __all__ = [
     'get_core_old_commits',
     'get_repo_new_commits',
     'get_repo_old_commits',
+    'edit_core',
     'set_core_branch',
     'set_core_version',
+    'edit_repo',
     'set_repo_branch',
     'set_repo_version',
     'set_repo_priority',
@@ -23,10 +26,10 @@ __all__ = [
     'set_env',
     'unset_env']
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from loader.job import *
-from loader.types import RepoInfo, Update
+from loader.types import RepoInfo, Update, Constraint
 from .connection import send_and_wait, send_and_async_wait
 
 
@@ -60,6 +63,18 @@ async def get_core() -> Optional[RepoInfo]:
         details as a RepoInfo object.
     """
     return await send_and_async_wait(GET_CORE)
+
+
+async def get_repo(repo_id: int) -> Optional[RepoInfo]:
+    """
+    get details of the plugins repos.
+    Args:
+        repo_id: id from the RepoInfo object. hint: get_repos()
+
+    Returns:
+        RepoInfo objects.
+    """
+    return await send_and_async_wait(GET_REPO, repo_id)
 
 
 async def get_repos() -> List[RepoInfo]:
@@ -139,52 +154,102 @@ async def get_repo_old_commits(repo_id: int, limit: int) -> Optional[List[Update
     return await send_and_async_wait(GET_REPO_OLD_COMMITS, repo_id, limit)
 
 
-async def set_core_branch(branch: str) -> None:
+async def edit_core(branch: Optional[str], version: Optional[Union[int, str]]) -> bool:
+    """
+    edit the core repo branch and version.
+    Args:
+        branch: branch name. hint: get_core() to see available branches.
+            if None stay as same.
+        version: version as hash or id. hint: get_core_new_commits() or get_core_old_commits().
+            if None stay as same.
+
+    Returns:
+        True if changed.
+    """
+    return await send_and_async_wait(EDIT_CORE, branch, version)
+
+
+async def set_core_branch(branch: str) -> bool:
     """
     change the core repo branch.
     Args:
         branch: branch name. hint: get_core() to see available branches.
+
+    Returns:
+        True if changed.
     """
-    return await send_and_async_wait(SET_CORE_BRANCH, branch)
+    return await edit_core(branch, None)
 
 
-async def set_core_version(version: str) -> None:
+async def set_core_version(version: Union[int, str]) -> bool:
     """
     change the core repo version.
     Args:
-        version: version as hash. hint: get_core_new_commits() or get_core_old_commits()
+        version: version as hash or id. hint: get_core_new_commits() or get_core_old_commits().
+
+    Returns:
+        True if changed.
     """
-    return await send_and_async_wait(SET_CORE_VERSION, version)
+    return await edit_core(None, version)
 
 
-async def set_repo_branch(repo_id: int, branch: str) -> None:
+async def edit_repo(repo_id: int, branch: Optional[str],
+                    version: Optional[Union[int, str]], priority: Optional[int]) -> bool:
+    """
+    edit the plugins repo branch, version and priority.
+    Args:
+        repo_id: id from the RepoInfo object. hint: get_repos().
+            if None stay as same.
+        branch: branch name. hint: get_repos() to see available branches.
+            if None stay as same.
+        version: version as hash or id. hint: get_repo_new_commits() or get_repo_old_commits().
+            if None stay as same.
+        priority: priority of this repo. hint: see docs of add_repo().
+            if None stay as same.
+
+    Returns:
+        True if changed.
+    """
+    return await send_and_async_wait(EDIT_REPO, repo_id, branch, version, priority)
+
+
+async def set_repo_branch(repo_id: int, branch: str) -> bool:
     """
     change the plugins repo branch.
     Args:
         repo_id: id from the RepoInfo object. hint: get_repos()
         branch: branch name. hint: get_repos() to see available branches.
+
+    Returns:
+        True if changed.
     """
-    return await send_and_async_wait(SET_REPO_BRANCH, repo_id, branch)
+    return await edit_repo(repo_id, branch, None, None)
 
 
-async def set_repo_version(repo_id: int, version: str) -> None:
+async def set_repo_version(repo_id: int, version: Union[int, str]) -> bool:
     """
     change the plugins repo version.
     Args:
         repo_id: id from the RepoInfo object. hint: get_repos()
-        version: version as hash. hint: get_repo_new_commits() or get_repo_old_commits()
+        version: version as hash or id. hint: get_repo_new_commits() or get_repo_old_commits().
+
+    Returns:
+        True if changed.
     """
-    return await send_and_async_wait(SET_REPO_VERSION, repo_id, version)
+    return await edit_repo(repo_id, None, version, None)
 
 
-async def set_repo_priority(repo_id: int, priority: int) -> None:
+async def set_repo_priority(repo_id: int, priority: int) -> bool:
     """
     change the plugins repo priority.
     Args:
         repo_id: id from the RepoInfo object. hint: get_repos()
-        priority: priority of this repo. hint: see docs of add_repo()
+        priority: priority of this repo. hint: see docs of add_repo().
+
+    Returns:
+        True if changed.
     """
-    return await send_and_async_wait(SET_REPO_PRIORITY, repo_id, priority)
+    return await edit_repo(repo_id, None, None, priority)
 
 
 async def add_constraints(c_type: str, data: List[str]) -> None:
@@ -220,11 +285,11 @@ async def remove_constraints(c_type: Optional[str], data: List[str]) -> None:
     return await send_and_async_wait(REMOVE_CONSTRAINTS, c_type, data)
 
 
-async def get_constraints() -> List[str]:
+async def get_constraints() -> List[Constraint]:
     """
     get all added constraints.
     Returns:
-        list of constraints as string.
+        list of Constraint objects.
     """
     return await send_and_async_wait(GET_CONSTRAINTS)
 
