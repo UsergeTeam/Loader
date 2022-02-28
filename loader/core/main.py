@@ -182,6 +182,8 @@ def init_repos() -> None:
                             log(f"\tPlugin: [{plg_.cat}/{plg_.name}] was removed due to: "
                                 f"plugin [{dep}] not found")
 
+                            break
+
         def grab_requirements() -> Set[str]:
             data = set()
 
