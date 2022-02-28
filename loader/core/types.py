@@ -12,9 +12,9 @@ from shutil import copytree, rmtree
 from typing import Set, Iterable, Dict, Union, Optional, List, Callable, Tuple, Iterator
 from urllib.parse import quote_plus
 try:
-    from signal import SIGTERM
-except ImportError:
     from signal import CTRL_C_EVENT as SIGTERM
+except ImportError:
+    from signal import SIGTERM
 
 from git import Repo as GitRepo, Commit, InvalidGitRepositoryError, GitCommandError
 from gitdb.exc import BadName
@@ -341,7 +341,7 @@ class _BaseRepo:
 
         if branch and self.info.branch != branch and self._branch_exists(branch):
             commit = self._get_commit(branch)
-            
+
             self.info.branch = branch
             self.info.version = commit.hexsha if commit else ""
             self.info.count = self.info.max_count = commit.count() if commit else 0
