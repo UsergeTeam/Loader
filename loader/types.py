@@ -23,7 +23,7 @@ class RepoInfo:
         return cls(id_, name, priority, branch, version, url)
 
     @property
-    def html_url(self) -> str:
+    def head_url(self) -> str:
         return self.url.rstrip('/') + "/commit/" + self.version
 
     def __repr__(self) -> str:
