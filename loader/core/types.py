@@ -340,8 +340,11 @@ class _BaseRepo:
         _changed = False
 
         if branch and self.info.branch != branch and self._branch_exists(branch):
+            commit = self._get_commit(branch)
+            
             self.info.branch = branch
-            self.info.version = ""
+            self.info.version = commit.hexsha if commit else ""
+            self.info.count = self.info.max_count = commit.count() if commit else 0
 
             _changed = True
 
@@ -350,6 +353,7 @@ class _BaseRepo:
 
             if commit and self.info.version != commit.hexsha:
                 self.info.version = commit.hexsha
+                self.info.count = commit.count()
 
                 _changed = True
 
