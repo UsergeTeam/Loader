@@ -69,9 +69,7 @@ def safe_url(url: str) -> str:
 
 def safe_repo_info(repo_info: RepoInfo) -> RepoInfo:
     info = copy(repo_info)
-
     info.url = safe_url(info.url)
-    info.head_url = safe_url(info.head_url)
 
     return info
 

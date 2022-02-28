@@ -262,13 +262,14 @@ class _BaseRepo:
 
         self._git.remote().pull(head.name, force=True)
 
-        commit = self._get_commit(self.info.version) if self.info.version else None
+        version = self.info.version
+        commit = (self._get_commit(version) if version else None) or head.commit
 
-        if not commit:
-            self.info.version = head.commit.hexsha
+        if version != commit.hexsha:
+            self.info.version = commit.hexsha
             _changed = True
 
-        self.info.count = (commit or head.commit).count()
+        self.info.count = commit.count()
         self.info.max_count = head.commit.count()
         self.info.branches.update(head.name for head in self._git.heads)
 
@@ -338,16 +339,19 @@ class _BaseRepo:
               priority: Optional[int]) -> bool:
         _changed = False
 
-        if version and self.info.version != version and self._version_exists(version):
-            self.info.version = version
-
-            _changed = True
-
         if branch and self.info.branch != branch and self._branch_exists(branch):
             self.info.branch = branch
             self.info.version = ""
 
             _changed = True
+
+        elif version:
+            commit = self._get_commit(version)
+
+            if commit and self.info.version != commit.hexsha:
+                self.info.version = commit.hexsha
+
+                _changed = True
 
         if priority and self.info.priority != priority:
             self.info.priority = int(priority)
