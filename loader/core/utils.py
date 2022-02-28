@@ -1,10 +1,12 @@
 __all__ = ['log', 'error', 'call', 'open_url', 'get_client_type', 'safe_url',
-           'grab_conflicts', 'clean_core', 'clean_plugins', 'print_logo']
+           'safe_repo_info', 'grab_conflicts', 'clean_core', 'clean_plugins',
+           'print_logo']
 
 import logging
 import os
 import re
 import subprocess
+from copy import copy
 from functools import lru_cache
 from itertools import combinations
 from os.path import join
@@ -13,6 +15,8 @@ from signal import SIGTERM
 from typing import Optional, Tuple, Set, Dict
 from urllib.error import HTTPError
 from urllib.request import urlopen, Request
+
+from loader.types import RepoInfo
 
 logging.basicConfig(level=logging.INFO,
                     format='[%(asctime)s - %(levelname)s] - %(name)s - %(message)s',
@@ -61,6 +65,15 @@ _REQUIREMENTS = re.compile(r'(\S+)(<=|<|==|>=|>|!=|~=)(\S+)')
 @lru_cache
 def safe_url(url: str) -> str:
     return _TOKEN.sub('private', url)
+
+
+def safe_repo_info(repo_info: RepoInfo) -> RepoInfo:
+    info = copy(repo_info)
+
+    info.url = safe_url(info.url)
+    info.head_url = safe_url(info.head_url)
+
+    return info
 
 
 def grab_conflicts(requirements: Set[str]) -> Set[str]:

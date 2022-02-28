@@ -6,10 +6,6 @@ from multiprocessing import Process, Pipe, set_start_method
 from shutil import which
 from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
-try:
-    from signal import CTRL_C_EVENT
-except ImportError:
-    CTRL_C_EVENT = SIGTERM
 
 from .checks import do_checks
 from .methods import fetch_core, fetch_repos
@@ -269,11 +265,7 @@ def run_userge() -> None:
 
     def handle(*_):
         p_p.close()
-
-        try:
-            os.kill(p.pid, CTRL_C_EVENT)
-        except ValueError:
-            raise KeyboardInterrupt
+        Session.terminate()
 
     for _ in (SIGINT, SIGTERM, SIGABRT):
         signal(_, handle)

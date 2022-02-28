@@ -11,6 +11,10 @@ from os.path import isdir, join, exists, isfile
 from shutil import copytree, rmtree
 from typing import Set, Iterable, Dict, Union, Optional, List, Callable, Tuple, Iterator
 from urllib.parse import quote_plus
+try:
+    from signal import SIGTERM
+except ImportError:
+    from signal import CTRL_C_EVENT as SIGTERM
 
 from git import Repo as GitRepo, Commit, InvalidGitRepositoryError, GitCommandError
 from gitdb.exc import BadName
@@ -224,16 +228,25 @@ class _BaseRepo:
         if self.failed:
             return
 
+        _branches = set()
+
         try:
             for info in self._git.remote().fetch():
                 branch = info.ref.remote_head
+                _branches.add(branch)
+
                 if branch not in self._git.heads:
                     self._git.create_head(branch, info.ref).set_tracking_branch(info.ref)
+
         except GitCommandError as e:
             self._git = None
             self._error_code = e.status
             self._stderr = (e.stderr or 'null').strip()
             return
+
+        for head in self._git.heads:
+            if head.name not in _branches:
+                self._git.delete_head(head, force=True)
 
         _changed = False
 
@@ -321,6 +334,32 @@ class _BaseRepo:
     def gen_path(path: str, url: str) -> str:
         return join(path, '.'.join(url.split('/')[-2:]))
 
+    def _edit(self, branch: Optional[str], version: Optional[Union[int, str]],
+              priority: Optional[int]) -> bool:
+        _changed = False
+
+        if version and self.info.version != version and self._version_exists(version):
+            self.info.version = version
+
+            _changed = True
+
+        if branch and self.info.branch != branch and self._branch_exists(branch):
+            self.info.branch = branch
+            self.info.version = ""
+
+            _changed = True
+
+        if priority and self.info.priority != priority:
+            self.info.priority = int(priority)
+
+            Repos.sort()
+            _changed = True
+
+        if _changed:
+            self._update()
+
+        return _changed
+
     def _update(self) -> None:
         raise NotImplementedError
 
@@ -359,21 +398,9 @@ class _CoreRepo(_BaseRepo):
         return []
 
     def edit(self, branch: Optional[str], version: Optional[Union[int, str]]) -> bool:
-        _changed = False
-
-        if version and self.info.version != version and self._version_exists(version):
-            self.info.version = version
-
-            _changed = True
-
-        if branch and self.info.branch != branch and self._branch_exists(branch):
-            self.info.branch = branch
-            self.info.version = ""
-
-            _changed = True
+        _changed = self._edit(branch, version, None)
 
         if _changed:
-            self._update()
             Sig.core_remove()
 
         return _changed
@@ -423,27 +450,9 @@ class _PluginsRepo(_BaseRepo):
 
     def edit(self, branch: Optional[str], version: Optional[Union[int, str]],
              priority: Optional[int]) -> bool:
-        _changed = False
-
-        if version and self.info.version != version and self._version_exists(version):
-            self.info.version = version
-
-            _changed = True
-
-        if self.info.branch != branch and self._branch_exists(branch):
-            self.info.branch = branch
-            self.info.version = ""
-
-            _changed = True
-
-        if self.info.priority != priority:
-            self.info.priority = priority
-
-            Repos.sort()
-            _changed = True
+        _changed = self._edit(branch, version, priority)
 
         if _changed:
-            self._update()
             Sig.repos_remove()
 
         return _changed
@@ -907,8 +916,16 @@ class Session:
         cls._process = p
 
     @classmethod
+    def terminate(cls) -> None:
+        if cls._process:
+            try:
+                os.kill(cls._process.pid, SIGTERM)
+            except ValueError:
+                raise KeyboardInterrupt
+
+    @classmethod
     def restart(cls, should_init: bool) -> None:
         cls._init = should_init
         cls._restart = True
-        if cls._process:
-            cls._process.terminate()
+
+        cls.terminate()

@@ -1,7 +1,6 @@
 __all__ = ['fetch_core', 'fetch_repos']
 
 from contextlib import suppress
-from copy import copy
 from os import environ
 from typing import List, Optional, Callable, Union
 
@@ -9,7 +8,7 @@ from dotenv import set_key, unset_key
 
 from . import CONF_TMP_PATH
 from .types import Tasks, Session, Repos, Constraints, Sig
-from .utils import error, safe_url
+from .utils import error, safe_repo_info
 from .. import job
 from ..types import RepoInfo, Update, Constraint
 
@@ -60,7 +59,7 @@ def get_core() -> Optional[RepoInfo]:
 def get_repo(repo_id: int) -> Optional[RepoInfo]:
     repo = Repos.get(repo_id)
     if repo:
-        return repo.info
+        return safe_repo_info(repo.info)
 
 
 @on(job.GET_REPOS)
@@ -68,9 +67,7 @@ def get_repos() -> List[RepoInfo]:
     data = []
 
     for repo in Repos.iter_repos():
-        info = copy(repo.info)
-        info.url = safe_url(info.url)
-        data.append(info)
+        data.append(safe_repo_info(repo.info))
 
     return data
 
