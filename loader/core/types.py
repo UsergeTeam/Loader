@@ -389,7 +389,7 @@ class _CoreRepo(_BaseRepo):
 
 class _PluginsRepo(_BaseRepo):
     _PATH = join(_CACHE_PATH, "repos")
-    _counter = count()
+    _counter = count(1)
 
     def __init__(self, info: RepoInfo, path: str):
         super().__init__(info, path)
