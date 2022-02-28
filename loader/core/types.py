@@ -106,10 +106,11 @@ class _Parser:
         with suppress(KeyError, ValueError):
             return self._section.getboolean(key)
 
-    def getset(self, key: str) -> Optional[Set[str]]:
+    def getset(self, key: str, lower=False) -> Optional[Set[str]]:
         value = self.get(key)
         if value:
-            return set(filter(None, map(lambda _: _.strip().lower(), value.split(','))))
+            return set(filter(None, map(
+                lambda _: _.strip().lower() if lower else _.strip(), value.split(','))))
 
 
 class _Config:
@@ -136,8 +137,8 @@ class _Config:
         client_type = parser.get('client_type')
         envs = parser.getset('envs')
         bins = parser.getset('bins')
-        depends = parser.getset('depends')
-        packages = parser.getset('packages')
+        depends = parser.getset('depends', True)
+        packages = parser.getset('packages', True)
 
         return cls(available, min_core, max_core, client_type, envs, bins, depends, packages)
 
