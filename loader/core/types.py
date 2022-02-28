@@ -491,7 +491,7 @@ class Repos:
         reset = len(sys.argv) > 1 and sys.argv[1].lower() == "reset"
 
         data = db.config.find_one({'key': 'core'})
-        branch = data['branch'] if data and not reset else "alpha"
+        branch = data['branch'] if data and not reset else "beta"
         version = data['version'] if data and not reset else ""
         cls._core = _CoreRepo.parse(branch, version)
 
