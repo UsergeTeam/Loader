@@ -156,7 +156,7 @@ def grab_conflicts(requirements: Set[str]) -> Set[str]:
 
 
 def _on_error(func, path, _) -> None:
-    if not os.access(path, os.W_OK):
+    if os.path.exists(path) and not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)
 
