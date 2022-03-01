@@ -1,16 +1,17 @@
 __all__ = ['log', 'error', 'call', 'open_url', 'get_client_type', 'safe_url',
-           'safe_repo_info', 'grab_conflicts', 'clean_core', 'clean_plugins',
-           'print_logo']
+           'safe_repo_info', 'grab_conflicts', 'rmtree', 'clean_core',
+           'clean_plugins', 'print_logo']
 
 import logging
 import os
 import re
+import stat
 import subprocess
 from copy import copy
 from functools import lru_cache
 from itertools import combinations
 from os.path import join
-from shutil import rmtree
+from shutil import rmtree as _rmtree
 from signal import SIGTERM
 from typing import Optional, Tuple, Set, Dict
 from urllib.error import HTTPError
@@ -154,8 +155,20 @@ def grab_conflicts(requirements: Set[str]) -> Set[str]:
     return conflicts
 
 
+def _on_error(func, path, _) -> None:
+    if os.access(path, os.W_OK):
+        raise
+
+    os.chmod(path, stat.S_IWUSR)
+    func(path)
+
+
+def rmtree(path: str) -> None:
+    _rmtree(path, onerror=_on_error)
+
+
 def clean_core() -> None:
-    rmtree("userge", ignore_errors=True)
+    rmtree("userge")
 
 
 def clean_plugins() -> None:
@@ -165,7 +178,7 @@ def clean_plugins() -> None:
         if cat == "builtin":
             continue
 
-        rmtree(join(plugins_path, cat), ignore_errors=True)
+        rmtree(join(plugins_path, cat))
 
 
 def _print_line():

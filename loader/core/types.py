@@ -8,7 +8,7 @@ from contextlib import suppress
 from itertools import count
 from multiprocessing import Process
 from os.path import isdir, join, exists, isfile
-from shutil import copytree, rmtree
+from shutil import copytree
 from typing import Set, Iterable, Dict, Union, Optional, List, Callable, Tuple, Iterator
 from urllib.parse import quote_plus
 try:
@@ -21,7 +21,7 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from .utils import error, call, safe_url
+from .utils import error, call, safe_url, rmtree
 from ..types import RepoInfo, Update, Constraint
 
 _CACHE_PATH = ".rcache"
@@ -330,7 +330,7 @@ class _BaseRepo:
         return data
 
     def delete(self) -> None:
-        rmtree(self._path, ignore_errors=True)
+        rmtree(self._path)
 
     @staticmethod
     def gen_path(path: str, url: str) -> str:
@@ -872,7 +872,7 @@ class Cache:
     @staticmethod
     def _remove(path: str) -> None:
         if isdir(path):
-            rmtree(path, ignore_errors=True)
+            rmtree(path)
 
     @classmethod
     def core_remove(cls) -> None:
