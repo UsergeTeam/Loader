@@ -3,9 +3,9 @@ __all__ = ['Database', 'Repos', 'Constraints', 'Sig', 'Requirements', 'Session',
 import os
 import re
 import sys
+import getopt
 from configparser import ConfigParser, SectionProxy
 from contextlib import suppress
-from getopt import getopt
 from itertools import count
 from multiprocessing import Process
 from os.path import isdir, join, exists, isfile
