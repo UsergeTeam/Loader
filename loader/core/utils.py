@@ -156,11 +156,9 @@ def grab_conflicts(requirements: Set[str]) -> Set[str]:
 
 
 def _on_error(func, path, _) -> None:
-    if os.access(path, os.W_OK):
-        raise
-
-    os.chmod(path, stat.S_IWUSR)
-    func(path)
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
 
 
 def rmtree(path: str) -> None:
