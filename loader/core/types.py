@@ -5,6 +5,7 @@ import re
 import sys
 from configparser import ConfigParser, SectionProxy
 from contextlib import suppress
+from getopt import getopt
 from itertools import count
 from multiprocessing import Process
 from os.path import isdir, join, exists, isfile
@@ -488,17 +489,42 @@ class Repos:
         if cls._loaded:
             return
 
+        args = sys.argv[1:]
+        options = "x"
+        long_options = ["remove-repo="]
+        try:
+            optlist, args = getopt.getopt(args, options, long_options)
+        except getopt.error as e:
+            error(str(e))
+
         db = Database.get()
-        reset = len(sys.argv) > 1 and sys.argv[1].lower() == "reset"
+        reset = "reset" in list(map(lambda _: _.strip().lower(), args))
 
         data = db.config.find_one({'key': 'core'})
         branch = data['branch'] if data and not reset else "beta"
         version = data['version'] if data and not reset else ""
         cls._core = _CoreRepo.parse(branch, version)
 
+        removed = []
+        if len(optlist) == 1:
+            dc = optlist[0]
+            if len(dc) > 1:
+                try:
+                    removed.extend(list(map(int, dc[1].split(','))))
+                except ValueError:
+                    error("You have provided invalid repo ids!")
+
+        i = 1
+        removed_urls = []
         for d in db.repos.find():
-            repo = _PluginsRepo.parse(d['priority'], d['branch'], d['version'], d['url'])
-            cls._plugins.append(repo)
+            if i in removed:
+                removed_urls.append(d['url'])
+            else:
+                repo = _PluginsRepo.parse(d['priority'], d['branch'], d['version'], d['url'])
+                cls._plugins.append(repo)
+            i += 1
+        if len(removed_urls) >= 1:
+            db.repos.delete_many({'url': {'$in': removed_urls}})
 
         cls.sort()
         cls._loaded = True
