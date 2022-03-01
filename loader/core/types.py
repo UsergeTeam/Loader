@@ -22,7 +22,7 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from .utils import error, call, safe_url
+from .utils import error, call, safe_url, log
 from ..types import RepoInfo, Update, Constraint
 
 _CACHE_PATH = ".rcache"
@@ -490,35 +490,48 @@ class Repos:
             return
 
         args = sys.argv[1:]
-        options = "x"
-        long_options = ["remove-repo="]
+        options = ""
+        long_options = ["reset", "remove-repo="]
         try:
             optlist, args = getopt.getopt(args, options, long_options)
         except getopt.error as e:
             error(str(e))
 
+        reset = False
+        removed = []
+
+        for dc in optlist:
+            if dc[0].lower() == "--reset":
+                reset = True
+                log("Reset Core repo successfully...")
+            elif dc[0].lower() == "--remove-repo"
+                if not dc[1]:
+                    removed.append(-1)
+                else:
+                    try:
+                        removed.extend(list(map(int, dc[1].split(','))))
+                    except ValueError:
+                        error("You have provided invalid repo ids!")
+
         db = Database.get()
-        reset = "reset" in list(map(lambda _: _.strip().lower(), args))
 
         data = db.config.find_one({'key': 'core'})
         branch = data['branch'] if data and not reset else "beta"
         version = data['version'] if data and not reset else ""
         cls._core = _CoreRepo.parse(branch, version)
 
-        removed = []
-        if len(optlist) == 1:
-            dc = optlist[0]
-            if len(dc) > 1:
-                try:
-                    removed.extend(list(map(int, dc[1].split(','))))
-                except ValueError:
-                    error("You have provided invalid repo ids!")
+        if removed[0] < 0:
+            db.repos.drop()
+            log("Removed all Plugins repo...")
+            cls._loaded = True
+            return
 
         i = 1
         removed_urls = []
         for d in db.repos.find():
             if i in removed:
                 removed_urls.append(d['url'])
+                log(f"Removed Repo: {d['url']}")
             else:
                 repo = _PluginsRepo.parse(d['priority'], d['branch'], d['version'], d['url'])
                 cls._plugins.append(repo)
