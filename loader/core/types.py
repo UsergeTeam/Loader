@@ -1,4 +1,4 @@
-__all__ = ['Database', 'Repos', 'Constraints', 'Sig', 'Requirements', 'Session', 'Tasks']
+__all__ = ['Database', 'Repos', 'Constraints', 'Sig', 'Cache', 'Requirements', 'Session', 'Tasks']
 
 import os
 import re
@@ -222,7 +222,7 @@ class _BaseRepo:
                         return data[0]
 
             elif isinstance(version, str):
-                with suppress(BadName):
+                with suppress(BadName, ValueError):
                     return self._git.commit(version)
 
     def fetch(self) -> None:
@@ -374,13 +374,15 @@ class _BaseRepo:
 
 
 class _CoreRepo(_BaseRepo):
-    _URL = "https://github.com/UsergeTeam/Userge"
-    _PATH = join(_CACHE_PATH, "core")
+    PATH = join(_CACHE_PATH, "core")
+
+    _url = "https://github.com/UsergeTeam/Userge"
+    _branch = "beta"
 
     @classmethod
     def parse(cls, branch: str, version: str) -> '_CoreRepo':
-        info = RepoInfo.parse(-1, -1, branch, version, cls._URL)
-        path = _BaseRepo.gen_path(cls._PATH, cls._URL)
+        info = RepoInfo.parse(-1, -1, branch or cls._branch, version, cls._url)
+        path = _BaseRepo.gen_path(cls.PATH, cls._url)
 
         return cls(info, path)
 
@@ -414,6 +416,15 @@ class _CoreRepo(_BaseRepo):
 
         return _changed
 
+    def reset(self) -> None:
+        if self.info.branch == self._branch and self.info.version == "":
+            return
+
+        self.info.branch = self._branch
+        self.info.version = ""
+
+        self._update()
+
     def copy(self, source="userge", path="userge") -> None:
         super().copy(source, path)
 
@@ -424,7 +435,8 @@ class _CoreRepo(_BaseRepo):
 
 
 class _PluginsRepo(_BaseRepo):
-    _PATH = join(_CACHE_PATH, "repos")
+    PATH = join(_CACHE_PATH, "repos")
+
     _counter = count(1)
 
     def __init__(self, info: RepoInfo, path: str):
@@ -434,7 +446,7 @@ class _PluginsRepo(_BaseRepo):
     @classmethod
     def parse(cls, priority: int, branch: str, version: str, url: str) -> '_PluginsRepo':
         info = RepoInfo.parse(next(cls._counter), priority, branch, version, url)
-        path = _BaseRepo.gen_path(cls._PATH, url)
+        path = _BaseRepo.gen_path(cls.PATH, url)
 
         return cls(info, path)
 
@@ -489,11 +501,10 @@ class Repos:
             return
 
         db = Database.get()
-        reset = len(sys.argv) > 1 and sys.argv[1].lower() == "reset"
 
         data = db.config.find_one({'key': 'core'})
-        branch = data['branch'] if data and not reset else "beta"
-        version = data['version'] if data and not reset else ""
+        branch = data['branch'] if data else ""
+        version = data['version'] if data else ""
         cls._core = _CoreRepo.parse(branch, version)
 
         for d in db.repos.find():
@@ -848,6 +859,24 @@ class Sig:
     @classmethod
     def repos_make(cls) -> None:
         cls._make(cls._repos)
+
+    @classmethod
+    def repos_remove(cls) -> None:
+        cls._remove(cls._repos)
+
+
+class Cache:
+    _core = _CoreRepo.PATH
+    _repos = _PluginsRepo.PATH
+
+    @staticmethod
+    def _remove(path: str) -> None:
+        if isdir(path):
+            rmtree(path, ignore_errors=True)
+
+    @classmethod
+    def core_remove(cls) -> None:
+        cls._remove(cls._core)
 
     @classmethod
     def repos_remove(cls) -> None:

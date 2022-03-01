@@ -25,8 +25,11 @@ def _py_version() -> None:
 
     py_ver = sys.version_info[0] + sys.version_info[1] / 10
 
-    if py_ver < MIN_PY or py_ver > MAX_PY:
+    if py_ver < MIN_PY:
         error(f"You MUST have a python version of at least {MIN_PY}.0 !")
+
+    if py_ver > MAX_PY:
+        error(f"You MUST have a python version of at most {MAX_PY} !")
 
     log(f"\tFound PYTHON - v{py_ver}.{sys.version_info[2]} ...")
 

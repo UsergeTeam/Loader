@@ -1,6 +1,7 @@
 __all__ = ['load']
 
 import os
+import sys
 from contextlib import suppress
 from multiprocessing import Process, Pipe, set_start_method
 from shutil import which
@@ -8,6 +9,7 @@ from signal import signal, SIGINT, SIGTERM, SIGABRT
 from typing import Set
 
 from .checks import do_checks
+from .menu import main_menu
 from .methods import fetch_core, fetch_repos
 from .types import Repos, Constraints, Sig, Requirements, Session, Tasks
 from .utils import log, error, get_client_type, safe_url, grab_conflicts, clean_core, \
@@ -42,7 +44,7 @@ def init_core() -> None:
     loader_version = core.grab_loader_version()
 
     if loader_version:
-        if float(__version__) < float(loader_version):
+        if __version__ < loader_version:
             error(f"min loader version: {loader_version} current: {__version__}")
 
     Requirements.update(core.grab_req())
@@ -242,6 +244,11 @@ def install_req() -> None:
             error(f"error code: [{code}]\n{err}")
 
 
+def check_args() -> None:
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "menu":
+        main_menu()
+
+
 def run_loader() -> None:
     load_data()
     init_core()
@@ -253,6 +260,7 @@ def initialize() -> None:
     try:
         print_logo()
         do_checks()
+        check_args()
         run_loader()
     except Exception as e:
         error(str(e))
