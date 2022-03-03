@@ -73,13 +73,13 @@ def get_repos() -> List[RepoInfo]:
 
 
 @on(job.ADD_REPO)
-def add_repo(priority: int, branch: str, url: str) -> None:
-    Repos.add(priority, branch, url)
+def add_repo(priority: int, branch: str, url: str) -> bool:
+    return Repos.add(priority, branch, url)
 
 
 @on(job.REMOVE_REPO)
-def remove_repo(repo_id: int) -> None:
-    Repos.remove(repo_id)
+def remove_repo(repo_id: int) -> bool:
+    return Repos.remove(repo_id)
 
 
 @on(job.GET_CORE_NEW_COMMITS)
@@ -130,13 +130,13 @@ def edit_repo(repo_id: int, branch: Optional[str], version: Optional[Union[int, 
 
 
 @on(job.ADD_CONSTRAINTS)
-def add_constraints(c_type: str, data: List[str]) -> None:
-    Constraints.add(c_type, data)
+def add_constraints(c_type: str, data: List[str]) -> bool:
+    return Constraints.add(c_type, data)
 
 
 @on(job.REMOVE_CONSTRAINTS)
-def remove_constraints(c_type: Optional[str], data: List[str]) -> None:
-    Constraints.remove(c_type, data)
+def remove_constraints(c_type: Optional[str], data: List[str]) -> bool:
+    return Constraints.remove(c_type, data)
 
 
 @on(job.GET_CONSTRAINTS)
@@ -145,8 +145,8 @@ def get_constraints() -> List[Constraint]:
 
 
 @on(job.CLEAR_CONSTRAINTS)
-def clear_constraints(c_type: Optional[str]) -> None:
-    Constraints.clear(c_type)
+def clear_constraints(c_type: Optional[str]) -> bool:
+    return Constraints.clear(c_type)
 
 
 @on(job.INVALIDATE_REPOS_CACHE)

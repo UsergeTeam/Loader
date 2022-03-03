@@ -543,9 +543,9 @@ class Repos:
         return iter(cls._plugins)
 
     @classmethod
-    def add(cls, priority: int, branch: str, url: str) -> None:
+    def add(cls, priority: int, branch: str, url: str) -> bool:
         if not cls._RE_REPO.match(url) or cls.get(url):
-            return
+            return False
 
         version = ""
 
@@ -555,14 +555,20 @@ class Repos:
                                          'version': version, 'url': url})
         Sig.repos_remove()
 
+        return True
+
     @classmethod
-    def remove(cls, repo_id: int) -> None:
+    def remove(cls, repo_id: int) -> bool:
         repo = cls.get(repo_id)
         if repo:
             cls._plugins.remove(repo)
             Database.get().repos.delete_one({'url': repo.info.url})
             repo.delete()
             Sig.repos_remove()
+
+            return True
+
+        return False
 
 
 class _ConstraintData:
@@ -766,11 +772,11 @@ class Constraints:
         cls._loaded = True
 
     @classmethod
-    def add(cls, c_type: str, data: List[str]) -> None:
+    def add(cls, c_type: str, data: List[str]) -> bool:
         const = cls._data.get(c_type)
 
         if not const:
-            return
+            return False
 
         to_add = const.add(data)
 
@@ -780,13 +786,17 @@ class Constraints:
 
             Sig.repos_remove()
 
+            return True
+
+        return False
+
     @classmethod
-    def remove(cls, c_type: Optional[str], data: List[str]) -> None:
+    def remove(cls, c_type: Optional[str], data: List[str]) -> bool:
         if c_type:
             const = cls._data.get(c_type)
 
             if not const:
-                return
+                return False
 
             to_remove = const.remove(data)
         else:
@@ -801,13 +811,17 @@ class Constraints:
             Database.get().constraint.delete_many(_data)
             Sig.repos_remove()
 
+            return True
+
+        return False
+
     @classmethod
-    def clear(cls, c_type: Optional[str]) -> None:
+    def clear(cls, c_type: Optional[str]) -> bool:
         if c_type:
             const = cls._data.get(c_type)
 
             if not const:
-                return
+                return False
 
             _count = const.clear()
         else:
@@ -816,6 +830,10 @@ class Constraints:
         if _count:
             Database.get().constraint.drop()
             Sig.repos_remove()
+
+            return True
+
+        return False
 
     @classmethod
     def get(cls) -> List[Constraint]:
