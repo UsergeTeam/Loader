@@ -229,7 +229,11 @@ class _BaseRepo:
 
         try:
             for info in self._git.remote().fetch():
-                branch = info.ref.remote_head
+                try:
+                    branch = info.ref.remote_head
+                except ValueError:
+                    continue
+
                 _branches.add(branch)
 
                 if branch not in self._git.heads:
@@ -243,6 +247,9 @@ class _BaseRepo:
 
         for head in self._git.heads:
             if head.name not in _branches:
+                if head == self._git.head.ref:
+                    self._git.git.checkout(head.commit.hexsha, force=True)
+
                 self._git.delete_head(head, force=True)
 
         _changed = False
