@@ -167,7 +167,8 @@ def _vars() -> None:
 
         if e:
             if r == 400:
-                error(f"Invalid LOG_CHANNEL_ID ({log_channel}) !")
+                error(f"Invalid LOG_CHANNEL_ID ({log_channel}) !",
+                      "add your bot to log chat if this value is ok")
 
             if r == 403:
                 error("Bot not found in log chat !", "add bot to your log chat as admin")
