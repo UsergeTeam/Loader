@@ -32,8 +32,8 @@ def log(msg: str) -> None:
     _LOG.info(msg)
 
 
-def error(msg: str) -> None:
-    _LOG.error(msg)
+def error(msg: str, hint: Optional[str] = None) -> None:
+    _LOG.error(msg + "\n\tHINT: " + hint if hint else msg)
     terminate(os.getpid())
 
 

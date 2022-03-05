@@ -18,8 +18,7 @@ def _git() -> None:
     log("Checking Git ...")
 
     if not which("git"):
-        error("Required git !\n"
-              "HINT: install git")
+        error("Required git !", "install git")
 
 
 def _py_version() -> None:
@@ -28,12 +27,12 @@ def _py_version() -> None:
     py_ver = sys.version_info[0] + sys.version_info[1] / 10
 
     if py_ver < MIN_PY:
-        error(f"You MUST have a python version of at least {MIN_PY}.0 !\n"
-              "HINT: upgrade your python version")
+        error(f"You MUST have a python version of at least {MIN_PY}.0 !",
+              "upgrade your python version")
 
     if py_ver > MAX_PY:
-        error(f"You MUST have a python version of at most {MAX_PY} !\n"
-              "HINT: downgrade your python version")
+        error(f"You MUST have a python version of at most {MAX_PY} !",
+              "downgrade your python version")
 
     log(f"\tFound PYTHON - v{py_ver}.{sys.version_info[2]} ...")
 
@@ -66,8 +65,7 @@ def _vars() -> None:
     log_channel = env.get('LOG_CHANNEL_ID')
 
     if not log_channel.startswith("-100") or not log_channel[1:].isnumeric():
-        error(f"Invalid LOG_CHANNEL_ID {log_channel} !\n"
-              "HINT: it should startswith -100")
+        error(f"Invalid LOG_CHANNEL_ID {log_channel} !", "it should startswith -100")
 
     bot_token = env.get('BOT_TOKEN')
 
@@ -76,12 +74,10 @@ def _vars() -> None:
 
     if bot_token:
         if ':' not in bot_token:
-            error("Invalid BOT_TOKEN var !\n"
-                  "HINT: get it from @botfather")
+            error("Invalid BOT_TOKEN var !", "get it from @botfather")
 
         if not env.get('OWNER_ID'):
-            error("Required OWNER_ID var !\n"
-                  "HINT: set your id to this")
+            error("Required OWNER_ID var !", "set your id to this")
 
     _var_data = dict(
         DOWN_PATH="downloads",
@@ -105,12 +101,11 @@ def _vars() -> None:
     sudo_trigger = env['SUDO_TRIGGER']
 
     if cmd_trigger == sudo_trigger:
-        error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER\n"
-              "HINT: use diff triggers for cmd and sudo triggers")
+        error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER",
+              "use diff triggers for cmd and sudo triggers")
 
     if cmd_trigger == '/' or sudo_trigger == '/':
-        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER\n"
-              "HINT: try diff one")
+        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER", "try diff one")
 
     h_api = 'HEROKU_API_KEY'
     h_app = 'HEROKU_APP_NAME'
@@ -141,8 +136,8 @@ def _vars() -> None:
 
         r, e = open_url(f"https://api.heroku.com/apps/{h_app}", headers)
         if e:
-            error(f"Couldn't find heroku app ({h_app}), {r} > {e}\n"
-                  "HINT: either name invalid or api key from diff account")
+            error(f"Couldn't find heroku app ({h_app}), {r} > {e}",
+                  "either name invalid or api key from diff account")
 
     if Database.is_none():
         db_url = env.get('DATABASE_URL')
@@ -166,8 +161,7 @@ def _vars() -> None:
         e = open_url(api_url + "/getMe")[1]
 
         if e:
-            error("Invalid BOT_TOKEN var !\n"
-                  "HINT: get or revoke it from @botfather")
+            error("Invalid BOT_TOKEN var !", "get or revoke it from @botfather")
 
         r, e = open_url(api_url + "/getChat?chat_id=" + log_channel)
 
@@ -176,11 +170,9 @@ def _vars() -> None:
                 error(f"Invalid LOG_CHANNEL_ID ({log_channel}) !")
 
             if r == 403:
-                error("Bot not found in log chat !\n"
-                      "HINT: add bot to your log chat as admin")
+                error("Bot not found in log chat !", "add bot to your log chat as admin")
 
-            error(f"Unknown error [getChat] ({r}) {e} !\n"
-                  "HINT: ask @usergeot")
+            error(f"Unknown error [getChat] ({r}) {e} !", "ask @usergeot")
 
         result = json.loads(r.read())['result']
 
@@ -188,12 +180,11 @@ def _vars() -> None:
         chat_username = result.get('username')
 
         if chat_type not in ('supergroup', 'channel'):
-            error(f"Invalid log chat type ({chat_type}) !\n"
-                  "HINT: only supergroups and channels are supported")
+            error(f"Invalid log chat type ({chat_type}) !",
+                  "only supergroups and channels are supported")
 
         if chat_username:
-            error(f"Can't use a public log chat (@{chat_username}) !\n"
-                  "HINT: make it private")
+            error(f"Can't use a public log chat (@{chat_username}) !", "make it private")
 
     for _ in (down_path, 'logs', '.rcache'):
         if not exists(_):
