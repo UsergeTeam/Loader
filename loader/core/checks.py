@@ -1,5 +1,6 @@
 __all__ = ['do_checks']
 
+import json
 import os
 import sys
 from os.path import exists, isfile
@@ -17,7 +18,8 @@ def _git() -> None:
     log("Checking Git ...")
 
     if not which("git"):
-        error("Required git !")
+        error("Required git !\n"
+              "HINT: install git")
 
 
 def _py_version() -> None:
@@ -26,10 +28,12 @@ def _py_version() -> None:
     py_ver = sys.version_info[0] + sys.version_info[1] / 10
 
     if py_ver < MIN_PY:
-        error(f"You MUST have a python version of at least {MIN_PY}.0 !")
+        error(f"You MUST have a python version of at least {MIN_PY}.0 !\n"
+              "HINT: upgrade your python version")
 
     if py_ver > MAX_PY:
-        error(f"You MUST have a python version of at most {MAX_PY} !")
+        error(f"You MUST have a python version of at most {MAX_PY} !\n"
+              "HINT: downgrade your python version")
 
     log(f"\tFound PYTHON - v{py_ver}.{sys.version_info[2]} ...")
 
@@ -59,16 +63,25 @@ def _vars() -> None:
         if not val:
             error(f"Required {_} var !")
 
+    log_channel = env.get('LOG_CHANNEL_ID')
+
+    if not log_channel.startswith("-100") or not log_channel[1:].isnumeric():
+        error(f"Invalid LOG_CHANNEL_ID {log_channel} !\n"
+              "HINT: it should startswith -100")
+
     bot_token = env.get('BOT_TOKEN')
 
     if not env.get('SESSION_STRING') and not bot_token:
         error("Required SESSION_STRING or BOT_TOKEN var !")
 
-    if bot_token and not env.get('OWNER_ID'):
-        error("Required OWNER_ID var !")
+    if bot_token:
+        if ':' not in bot_token:
+            error("Invalid BOT_TOKEN var !\n"
+                  "HINT: get it from @botfather")
 
-    if not bot_token:
-        log("\t[HINT] >>> BOT_TOKEN not found ! (Disabling Advanced Loggings)")
+        if not env.get('OWNER_ID'):
+            error("Required OWNER_ID var !\n"
+                  "HINT: set your id to this")
 
     _var_data = dict(
         DOWN_PATH="downloads",
@@ -92,10 +105,12 @@ def _vars() -> None:
     sudo_trigger = env['SUDO_TRIGGER']
 
     if cmd_trigger == sudo_trigger:
-        error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER")
+        error(f"Invalid SUDO_TRIGGER!, You can't use {cmd_trigger} as SUDO_TRIGGER\n"
+              "HINT: use diff triggers for cmd and sudo triggers")
 
     if cmd_trigger == '/' or sudo_trigger == '/':
-        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER")
+        error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER\n"
+              "HINT: try diff one")
 
     h_api = 'HEROKU_API_KEY'
     h_app = 'HEROKU_APP_NAME'
@@ -120,13 +135,14 @@ def _vars() -> None:
             'Authorization': f"Bearer {h_api}"
         }
 
-        e = open_url("https://api.heroku.com/account/rate-limits", headers)
+        r, e = open_url("https://api.heroku.com/account/rate-limits", headers)
         if e:
-            error(f"Invalid HEROKU_API_KEY, heroku response > {e}")
+            error(f"Invalid HEROKU_API_KEY, {r} > {e}")
 
-        e = open_url(f"https://api.heroku.com/apps/{h_app}", headers)
+        r, e = open_url(f"https://api.heroku.com/apps/{h_app}", headers)
         if e:
-            error(f"Invalid HEROKU_APP_NAME ({h_app}), heroku response > {e}")
+            error(f"Couldn't find heroku app ({h_app}), {r} > {e}\n"
+                  "HINT: either name invalid or api key from diff account")
 
     if Database.is_none():
         db_url = env.get('DATABASE_URL')
@@ -140,9 +156,44 @@ def _vars() -> None:
         try:
             cl.list_database_names()
         except Exception as e:
-            error(f"Invalid DATABASE_URL, pymongo response > {str(e)}")
+            error(f"Invalid DATABASE_URL > {str(e)}")
 
         Database.set(cl)
+
+    if bot_token:
+        api_url = "https://api.telegram.org/bot" + bot_token
+
+        e = open_url(api_url + "/getMe")[1]
+
+        if e:
+            error("Invalid BOT_TOKEN var !\n"
+                  "HINT: get or revoke it from @botfather")
+
+        r, e = open_url(api_url + "/getChat?chat_id=" + log_channel)
+
+        if e:
+            if r == 400:
+                error(f"Invalid LOG_CHANNEL_ID ({log_channel}) !")
+
+            if r == 403:
+                error("Bot not found in log chat !\n"
+                      "HINT: add bot to your log chat as admin")
+
+            error(f"Unknown error [getChat] ({r}) {e} !\n"
+                  "HINT: ask @usergeot")
+
+        result = json.loads(r.read())['result']
+
+        chat_type = result.get('type')
+        chat_username = result.get('username')
+
+        if chat_type not in ('supergroup', 'channel'):
+            error(f"Invalid log chat type ({chat_type}) !\n"
+                  "HINT: only supergroups and channels are supported")
+
+        if chat_username:
+            error(f"Can't use a public log chat (@{chat_username}) !\n"
+                  "HINT: make it private")
 
     for _ in (down_path, 'logs', '.rcache'):
         if not exists(_):

@@ -45,7 +45,7 @@ def init_core() -> None:
 
     if loader_version:
         if __version__ < loader_version:
-            error(f"min loader version: {loader_version} current: {__version__}")
+            error(f"loader update required!, min version: {loader_version} current: {__version__}")
 
     Requirements.update(core.grab_req())
 

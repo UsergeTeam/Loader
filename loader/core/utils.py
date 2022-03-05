@@ -1,5 +1,5 @@
-__all__ = ['log', 'error', 'call', 'open_url', 'get_client_type', 'safe_url',
-           'safe_repo_info', 'grab_conflicts', 'rmtree', 'clean_core',
+__all__ = ['log', 'error', 'terminate', 'call', 'open_url', 'get_client_type',
+           'safe_url', 'safe_repo_info', 'grab_conflicts', 'rmtree', 'clean_core',
            'clean_plugins', 'print_logo']
 
 import logging
@@ -12,10 +12,13 @@ from functools import lru_cache
 from itertools import combinations
 from os.path import join
 from shutil import rmtree as _rmtree
-from signal import SIGTERM
-from typing import Optional, Tuple, Set, Dict
+from typing import Optional, Tuple, Set, Dict, Any
 from urllib.error import HTTPError
 from urllib.request import urlopen, Request
+try:
+    from signal import CTRL_C_EVENT as SIGTERM
+except ImportError:
+    from signal import SIGTERM
 
 from loader.types import RepoInfo
 
@@ -31,7 +34,11 @@ def log(msg: str) -> None:
 
 def error(msg: str) -> None:
     _LOG.error(msg)
-    os.kill(os.getpid(), SIGTERM)
+    terminate(os.getpid())
+
+
+def terminate(pid: int) -> None:
+    os.kill(pid, SIGTERM)
 
 
 def call(*args: str) -> Tuple[int, str]:
@@ -39,12 +46,12 @@ def call(*args: str) -> Tuple[int, str]:
     return p.wait(), p.communicate()[1]
 
 
-def open_url(url: str, headers: dict) -> Optional[str]:
-    r = Request(url, headers=headers)
+def open_url(url: str, headers: Optional[dict] = None) -> Tuple[Any, Optional[str]]:
+    r = Request(url, headers=headers or {})
     try:
-        urlopen(r)
+        return urlopen(r), None
     except HTTPError as e:
-        return str(e)
+        return e.code, e.reason
 
 
 def get_client_type() -> str:
