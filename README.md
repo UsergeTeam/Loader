@@ -14,6 +14,7 @@ This project helps to manage unlimited plugins repos with one [core repo](https:
 * plugins conflict handling
 * auto requirements conflict resolver
 * constraints support (include/exclude/in)
+* recovery menu to reset crashed state
 * both windows and linux support
 * optimized boot time
 
