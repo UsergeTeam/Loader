@@ -3,8 +3,10 @@ __all__ = ['do_checks']
 import json
 import os
 import sys
+from base64 import urlsafe_b64decode
 from os.path import exists, isfile
 from shutil import which
+from struct import unpack, error as struct_error
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -56,6 +58,9 @@ def _vars() -> None:
 
     env = os.environ
 
+    if env.get('HU_STRING_SESSION'):
+        error("Deprecated HU_STRING_SESSION var !", "its SESSION_STRING now")
+
     for _ in ('API_ID', 'API_HASH', 'DATABASE_URL', 'LOG_CHANNEL_ID'):
         val = env.get(_)
 
@@ -67,10 +72,18 @@ def _vars() -> None:
     if not log_channel.startswith("-100") or not log_channel[1:].isnumeric():
         error(f"Invalid LOG_CHANNEL_ID {log_channel} !", "it should startswith -100")
 
+    string = env.get('SESSION_STRING')
     bot_token = env.get('BOT_TOKEN')
 
-    if not env.get('SESSION_STRING') and not bot_token:
+    if not string and not bot_token:
         error("Required SESSION_STRING or BOT_TOKEN var !")
+
+    if string:
+        try:
+            unpack(f">B?256s{'I' if len(string) == 351 else 'Q'}?",
+                   urlsafe_b64decode(string + "=" * (-len(string) % 4)))
+        except struct_error:
+            error("Invalid SESSION_STRING var !", "need a pyrogram session string")
 
     if bot_token:
         if ':' not in bot_token:

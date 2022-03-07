@@ -49,7 +49,7 @@ def call(*args: str) -> Tuple[int, str]:
 def open_url(url: str, headers: Optional[dict] = None) -> Tuple[Any, Optional[str]]:
     r = Request(url, headers=headers or {})
     try:
-        return urlopen(r), None
+        return urlopen(r, timeout=3), None
     except HTTPError as e:
         return e.code, e.reason
 
