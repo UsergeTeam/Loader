@@ -4,9 +4,9 @@ declare -r minPy=8 maxPy=9
 declare -r repo="https://github.com/usergeteam/loader"
 declare -r -A pyLinks=(
     [aarch64]="https://github.com/Termux-pod/termux-pod/blob/main/aarch64/python/python-3.9.7/python_3.9.7_aarch64.deb?raw=true"
-        [arm]="https://github.com/Termux-pod/termux-pod/blob/main/arm/python/python-3.9.7/python_3.9.7_arm.deb?raw=true"
-            [i686]="https://github.com/Termux-pod/termux-pod/blob/main/i686/python/python-3.9.7/python_3.9.7_i686.deb?raw=true"
-                [x86_64]="https://github.com/Termux-pod/termux-pod/tree/main/x86_64/python/python-3.8.6?raw=true"
+    [arm]="https://github.com/Termux-pod/termux-pod/blob/main/arm/python/python-3.9.7/python_3.9.7_arm.deb?raw=true"
+    [i686]="https://github.com/Termux-pod/termux-pod/blob/main/i686/python/python-3.9.7/python_3.9.7_i686.deb?raw=true"
+    [x86_64]="https://github.com/Termux-pod/termux-pod/tree/main/x86_64/python/python-3.8.6?raw=true"
 )
 
 log() {
@@ -20,7 +20,8 @@ die() {
 
 _checkTermux() {
     log "Checking Termux..."
-    test -n "$(termux-info 2> /dev/null)" || die "This script is only for termux users!" 
+    test -n "$(termux-info 2> /dev/null)" \
+        || die "This script is only for termux users!" 
 }
 
 _checkRequirement() {
@@ -42,7 +43,8 @@ _getDeviceArchitecture() {
 
 _uninstallPython() {
     log "Uninstalling Python due to verison not match..."
-    command "pkg uninstall python -y" 2> /dev/null || die "Couldn't uninstall Python, Uninstall manually and run this script again."
+    command "pkg uninstall python -y" 2> /dev/null \
+        || die "Couldn't uninstall Python, Uninstall manually and run this script again."
     
 }
 
@@ -114,7 +116,8 @@ _setupLoader() {
     test -z "$out" && {
         $(mv loader/config.env.sample loader/config.env)
         log "Loader is set up successfully..."
-        log "Now fill config.env file by executing:\n\tcd loader && nano config.env\nstart userge by executing:\n\tbash install_req && bash run"
+        log "Now fill config.env file by executing:\n\tcd loader && nano config.env"
+        log "start userge by executing:\n\tbash install_req && bash run"
     }
 }
 
