@@ -17,6 +17,7 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
+from . import CORE_REPO, CORE_BRANCH
 from .utils import error, terminate, call, safe_url, rmtree
 from ..types import RepoInfo, Update, Constraint
 
@@ -361,8 +362,8 @@ class _BaseRepo:
 
                 _changed = True
 
-        if priority and self.info.priority != priority:
-            self.info.priority = int(priority)
+        if isinstance(priority, int) and self.info.priority != priority:
+            self.info.priority = priority
 
             Repos.sort()
             _changed = True
@@ -379,8 +380,8 @@ class _BaseRepo:
 class _CoreRepo(_BaseRepo):
     PATH = join(_CACHE_PATH, "core")
 
-    _url = "https://github.com/UsergeTeam/Userge"
-    _branch = "beta"
+    _url = CORE_REPO
+    _branch = CORE_BRANCH
 
     @classmethod
     def parse(cls, branch: str, version: str) -> '_CoreRepo':
