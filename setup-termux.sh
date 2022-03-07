@@ -43,7 +43,7 @@ _getDeviceArchitecture() {
 
 _uninstallPython() {
     log "Uninstalling Python due to verison not match..."
-    command "pkg uninstall python -y" 2> /dev/null \
+    test "$(pkg uninstall python -y 2> /dev/null)" \
         || die "Couldn't uninstall Python, Uninstall manually and run this script again."
     
 }
