@@ -154,7 +154,12 @@ def _vars() -> None:
 
     if Database.is_none():
         db_url = env.get('DATABASE_URL')
-        new_url = Database.fix_url(db_url)
+
+        try:
+            new_url = Database.fix_url(db_url)
+        except ValueError:
+            error(f"Invalid DATABASE_URL > ({db_url}) !")
+            return
 
         if new_url != db_url:
             env['DATABASE_URL'] = new_url
