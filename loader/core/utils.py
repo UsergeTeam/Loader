@@ -1,6 +1,6 @@
 __all__ = ['log', 'error', 'terminate', 'call', 'open_url', 'get_client_type',
-           'safe_url', 'safe_repo_info', 'grab_conflicts', 'rmtree', 'clean_core',
-           'clean_plugins', 'print_logo']
+           'safe_url', 'safe_repo_info', 'grab_conflicts', 'remove', 'rmtree',
+           'clean_core', 'clean_plugins', 'print_logo']
 
 import logging
 import os
@@ -32,9 +32,10 @@ def log(msg: str) -> None:
     _LOG.info(msg)
 
 
-def error(msg: str, hint: Optional[str] = None) -> None:
+def error(msg: str, hint: Optional[str] = None, interrupt=True) -> None:
     _LOG.error(msg + "\n\tHINT: " + hint if hint else msg)
-    terminate(os.getpid())
+    if interrupt:
+        raise KeyboardInterrupt
 
 
 def terminate(pid: int) -> None:
@@ -168,8 +169,17 @@ def _on_error(func, path, _) -> None:
         func(path)
 
 
+def remove(path: str) -> None:
+    if os.path.exists(path):
+        if not os.access(path, os.W_OK):
+            os.chmod(path, stat.S_IWUSR)
+
+        os.remove(path)
+
+
 def rmtree(path: str) -> None:
-    _rmtree(path, onerror=_on_error)
+    if os.path.isdir(path):
+        _rmtree(path, onerror=_on_error)
 
 
 def clean_core() -> None:

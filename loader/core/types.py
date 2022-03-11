@@ -18,7 +18,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from . import CORE_REPO, CORE_BRANCH
-from .utils import error, terminate, call, safe_url, rmtree
+from .utils import error, terminate, call, safe_url, remove, rmtree
 from ..types import RepoInfo, Update, Constraint
 
 _CACHE_PATH = ".rcache"
@@ -857,11 +857,6 @@ class Sig:
         if not exists(path):
             open(path, 'w').close()
 
-    @staticmethod
-    def _remove(path: str) -> None:
-        if exists(path):
-            os.remove(path)
-
     @classmethod
     def core_exists(cls) -> bool:
         return exists(cls._core)
@@ -872,7 +867,7 @@ class Sig:
 
     @classmethod
     def core_remove(cls) -> None:
-        cls._remove(cls._core)
+        remove(cls._core)
 
     @classmethod
     def repos_exists(cls) -> bool:
@@ -884,25 +879,20 @@ class Sig:
 
     @classmethod
     def repos_remove(cls) -> None:
-        cls._remove(cls._repos)
+        remove(cls._repos)
 
 
 class Cache:
     _core = _CoreRepo.PATH
     _repos = _PluginsRepo.PATH
 
-    @staticmethod
-    def _remove(path: str) -> None:
-        if isdir(path):
-            rmtree(path)
-
     @classmethod
     def core_remove(cls) -> None:
-        cls._remove(cls._core)
+        rmtree(cls._core)
 
     @classmethod
     def repos_remove(cls) -> None:
-        cls._remove(cls._repos)
+        rmtree(cls._repos)
 
 
 class Requirements:

@@ -241,7 +241,9 @@ def install_req() -> None:
 
         code, err = Requirements.install()
         if code:
-            error(f"error code: [{code}]\n{err}")
+            error(f"error code: [{code}]\n{err}", interrupt=False)
+
+            Sig.repos_remove()
 
 
 def check_args() -> None:
@@ -307,3 +309,5 @@ def load() -> None:
 
     with suppress(KeyboardInterrupt):
         _load()
+
+    raise SystemExit
