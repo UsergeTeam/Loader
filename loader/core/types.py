@@ -199,9 +199,6 @@ class _BaseRepo:
     def _branch_exists(self, branch: str) -> bool:
         return branch and self._git and branch in self._git.heads
 
-    def _version_exists(self, version: Union[int, str]) -> bool:
-        return version and self._get_commit(version) is not None
-
     def _get_commit(self, version: Optional[Union[int, str]] = None) -> Optional[Commit]:
         if version is None:
             version = self.info.version
@@ -270,8 +267,10 @@ class _BaseRepo:
         if self._git.head.is_detached or self._git.head.ref != head:
             head.checkout(force=True)
 
-        self._git.head.reset(self._git.remote().refs[head.name].name, hard=True)
-        self._git.remote().pull(head.name, force=True)
+        try:
+            self._git.remote().pull(head.name, force=True)
+        except GitCommandError:
+            self._git.head.reset(self._git.remote().refs[head.name].name, hard=True)
 
         version = self.info.version
         commit = (self._get_commit(version) if version else None) or head.commit
@@ -955,6 +954,7 @@ class Session:
     @classmethod
     def set_process(cls, p: Process) -> None:
         cls._process = p
+
         if exists(CONF_PATH):
             assert_write(CONF_PATH, True)
 

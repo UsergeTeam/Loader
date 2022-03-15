@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from base64 import urlsafe_b64decode
-from os.path import exists, isfile
+from os.path import isfile
 from shutil import which
 from struct import unpack, error as struct_error
 
@@ -57,7 +57,9 @@ def _vars() -> None:
 
     env = os.environ
 
-    if env.get('HU_STRING_SESSION'):
+    string = env.get('SESSION_STRING')
+
+    if env.get('HU_STRING_SESSION') and not string:
         error("Deprecated HU_STRING_SESSION var !", "its SESSION_STRING now")
 
     for _ in ('API_ID', 'API_HASH', 'DATABASE_URL', 'LOG_CHANNEL_ID'):
@@ -71,7 +73,6 @@ def _vars() -> None:
     if not log_channel.startswith("-100") or not log_channel[1:].isnumeric():
         error(f"Invalid LOG_CHANNEL_ID {log_channel} !", "it should startswith -100")
 
-    string = env.get('SESSION_STRING')
     bot_token = env.get('BOT_TOKEN')
 
     if not string and not bot_token:
