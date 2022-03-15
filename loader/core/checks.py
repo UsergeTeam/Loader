@@ -16,7 +16,7 @@ from . import MIN_PY, MAX_PY, CONF_PATH
 from .types import Database
 from .utils import log, error, open_url, assert_read, assert_read_write
 
-atexit.register(assert_read_write, CONF_PATH)
+atexit.register(lambda _: exists(_) and assert_read_write(_), CONF_PATH)
 
 
 def _git() -> None:
