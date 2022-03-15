@@ -282,7 +282,10 @@ class _BaseRepo:
 
         self.info.count = commit.count()
         self.info.max_count = head.commit.count()
-        self.info.branches.update(sorted(head.name for head in self._git.heads))
+
+        self.info.branches.clear()
+        self.info.branches.extend(head.name for head in self._git.heads)
+        self.info.branches.sort()
 
         if _changed:
             self._update()
