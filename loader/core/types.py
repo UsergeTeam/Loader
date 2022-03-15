@@ -415,7 +415,7 @@ class _CoreRepo(_BaseRepo):
 
         return []
 
-    def edit(self, branch: Optional[str], version: Optional[Union[int, str]], _) -> bool:
+    def edit(self, branch: Optional[str], version: Optional[Union[int, str]], _=None) -> bool:
         return super().edit(branch, version, None)
 
     def reset(self) -> None:
