@@ -1,3 +1,3 @@
 @echo off
 
-start python tools\genStrSession.py
+start python tools\string.py

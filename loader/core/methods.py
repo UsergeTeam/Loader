@@ -6,7 +6,7 @@ from typing import List, Optional, Callable, Union
 
 from dotenv import set_key, unset_key
 
-from . import CONF_TMP_PATH
+from . import CONF_PATH
 from .types import Tasks, Session, Repos, Constraints, Sig
 from .utils import error, safe_repo_info
 from .. import job
@@ -156,7 +156,7 @@ def invalidate_repos_cache() -> None:
 
 @on(job.SET_ENV)
 def set_env(key: str, value: str) -> None:
-    set_key(CONF_TMP_PATH, key, value)
+    set_key(CONF_PATH, key, value)
     if key not in environ:
         Sig.repos_remove()
 
@@ -165,7 +165,7 @@ def set_env(key: str, value: str) -> None:
 
 @on(job.UNSET_ENV)
 def unset_env(key: str) -> None:
-    unset_key(CONF_TMP_PATH, key)
+    unset_key(CONF_PATH, key)
     with suppress(KeyError):
         del environ[key]
         Sig.repos_remove()

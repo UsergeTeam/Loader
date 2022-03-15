@@ -17,8 +17,8 @@ from gitdb.exc import BadName
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
-from . import CORE_REPO, CORE_BRANCH
-from .utils import error, terminate, call, safe_url, remove, rmtree
+from . import CORE_REPO, CORE_BRANCH, CONF_PATH
+from .utils import error, terminate, call, safe_url, remove, rmtree, assert_write
 from ..types import RepoInfo, Update, Constraint
 
 _CACHE_PATH = ".rcache"
@@ -111,11 +111,12 @@ class _Parser:
 
 
 class _Config:
-    def __init__(self, available: Optional[bool], min_core: Optional[int],
-                 max_core: Optional[int], client_type: Optional[str],
+    def __init__(self, available: Optional[bool], os_type: Optional[str],
+                 min_core: Optional[int], max_core: Optional[int], client_type: Optional[str],
                  envs: Optional[Set[str]], bins: Optional[Set[str]],
                  depends: Optional[Set[str]], packages: Optional[Set[str]]):
         self.available = available
+        self.os = os_type
         self.min_core = min_core
         self.max_core = max_core
         self.client_type = client_type
@@ -129,6 +130,7 @@ class _Config:
         parser = _Parser.parse(path)
 
         available = parser.getboolean('available')
+        os_type = parser.get('os')
         min_core = parser.getint('min_core')
         max_core = parser.getint('max_core')
         client_type = parser.get('client_type')
@@ -137,7 +139,8 @@ class _Config:
         depends = parser.getset('depends', True)
         packages = parser.getset('packages', True)
 
-        return cls(available, min_core, max_core, client_type, envs, bins, depends, packages)
+        return cls(available, os_type, min_core, max_core,
+                   client_type, envs, bins, depends, packages)
 
 
 class _Plugin:
@@ -153,9 +156,8 @@ class _Plugin:
     @classmethod
     def parse(cls, path: str, cat: str, name: str, repo: RepoInfo) -> '_Plugin':
         config = _Config.parse(join(path, "config.ini"))
-        repo_name = repo.name
 
-        return cls(path, cat, name, config, repo_name, repo.url)
+        return cls(path, cat, name, config, repo.name, repo.url)
 
     def copy(self) -> None:
         copytree(self.path, join("userge", "plugins", self.cat, self.name))
@@ -200,7 +202,10 @@ class _BaseRepo:
     def _version_exists(self, version: Union[int, str]) -> bool:
         return version and self._get_commit(version) is not None
 
-    def _get_commit(self, version: Union[int, str]) -> Optional[Commit]:
+    def _get_commit(self, version: Optional[Union[int, str]] = None) -> Optional[Commit]:
+        if version is None:
+            version = self.info.version
+
         if self._git:
             if isinstance(version, int) or version.isnumeric():
                 commit = self._git.commit(self.info.branch)
@@ -218,7 +223,7 @@ class _BaseRepo:
                     if data:
                         return data[0]
 
-            elif isinstance(version, str):
+            elif isinstance(version, str) and version:
                 with suppress(BadName, ValueError):
                     return self._git.commit(version)
 
@@ -265,6 +270,7 @@ class _BaseRepo:
         if self._git.head.is_detached or self._git.head.ref != head:
             head.checkout(force=True)
 
+        self._git.head.reset(self._git.remote().refs[head.name].name, hard=True)
         self._git.remote().pull(head.name, force=True)
 
         version = self.info.version
@@ -276,7 +282,7 @@ class _BaseRepo:
 
         self.info.count = commit.count()
         self.info.max_count = head.commit.count()
-        self.info.branches.update(head.name for head in self._git.heads)
+        self.info.branches.update(sorted(head.name for head in self._git.heads))
 
         if _changed:
             self._update()
@@ -298,38 +304,32 @@ class _BaseRepo:
 
     def new_commits(self) -> List[Update]:
         data = []
-        version = self.info.version
+        head = self._get_commit()
 
-        if self._version_exists(version):
-            found = False
-            for commit in self._git.iter_commits(self.info.branch):
-                if commit.hexsha == version:
-                    found = True
-                    break
-                data.append(Update.parse(safe_url(self.info.url), commit))
+        if head:
+            top = self._git.commit(self.info.branch)
+            diff = top.count() - head.count()
 
-            if not found:
-                data.clear()
+            if diff > 0:
+                for commit in self._git.iter_commits(self.info.branch, max_count=diff):
+                    data.append(Update.parse(safe_url(self.info.url), commit))
 
         return data
 
     def old_commits(self, limit: int) -> List[Update]:
         data = []
-        version = self.info.version
 
-        if limit > 0 and self._version_exists(version):
-            found = False
-            for commit in self._git.iter_commits(self.info.branch):
-                if not found:
-                    if commit.hexsha != version:
-                        continue
-                    found = True
-                    continue
-                data.append(Update.parse(safe_url(self.info.url), commit))
+        if limit > 0:
+            head = self._get_commit()
 
-                limit -= 1
-                if limit <= 0:
-                    break
+            if head:
+                top = self._git.commit(self.info.branch)
+                skip = top.count() - head.count() + 1
+
+                if skip > 0:
+                    for commit in self._git.iter_commits(self.info.branch,
+                                                         max_count=limit, skip=skip):
+                        data.append(Update.parse(safe_url(self.info.url), commit))
 
         return data
 
@@ -340,8 +340,8 @@ class _BaseRepo:
     def gen_path(path: str, url: str) -> str:
         return join(path, '.'.join(url.split('/')[-2:]))
 
-    def _edit(self, branch: Optional[str], version: Optional[Union[int, str]],
-              priority: Optional[int]) -> bool:
+    def edit(self, branch: Optional[str], version: Optional[Union[int, str]],
+             priority: Optional[int]) -> bool:
         _changed = False
 
         if branch and self.info.branch != branch and self._branch_exists(branch):
@@ -412,13 +412,8 @@ class _CoreRepo(_BaseRepo):
 
         return []
 
-    def edit(self, branch: Optional[str], version: Optional[Union[int, str]]) -> bool:
-        _changed = self._edit(branch, version, None)
-
-        if _changed:
-            Sig.core_remove()
-
-        return _changed
+    def edit(self, branch: Optional[str], version: Optional[Union[int, str]], _) -> bool:
+        return super().edit(branch, version, None)
 
     def reset(self) -> None:
         if self.info.branch == self._branch and self.info.version == "":
@@ -436,6 +431,7 @@ class _CoreRepo(_BaseRepo):
         Database.get().config.update_one({'key': 'core'},
                                          {"$set": {'branch': self.info.branch,
                                                    'version': self.info.version}}, upsert=True)
+        Sig.core_remove()
 
 
 class _PluginsRepo(_BaseRepo):
@@ -473,15 +469,6 @@ class _PluginsRepo(_BaseRepo):
 
                 self._plugins.append(_Plugin.parse(plg_path, cat, plg, self.info))
 
-    def edit(self, branch: Optional[str], version: Optional[Union[int, str]],
-             priority: Optional[int]) -> bool:
-        _changed = self._edit(branch, version, priority)
-
-        if _changed:
-            Sig.repos_remove()
-
-        return _changed
-
     def iter_plugins(self) -> Iterator[_Plugin]:
         return iter(self._plugins)
 
@@ -490,6 +477,7 @@ class _PluginsRepo(_BaseRepo):
                                         {"$set": {'branch': self.info.branch,
                                                   'version': self.info.version,
                                                   'priority': self.info.priority}})
+        Sig.repos_remove()
 
 
 class Repos:
@@ -497,7 +485,7 @@ class Repos:
     _plugins: List[_PluginsRepo] = []
 
     _loaded = False
-    _RE_REPO = re.compile(r"https://(?:ghp_[0-9A-z]{36}@)?github.com/.+/.+")
+    _RE_REPO = re.compile(r"https://(?:ghp_[0-9A-z]{36}@)?github.com/[\w-]+/[\w.-]+$")
 
     @classmethod
     def load(cls) -> None:
@@ -899,8 +887,8 @@ class Requirements:
     _data = set()
 
     @classmethod
-    def has(cls) -> bool:
-        return len(cls._data) > 0
+    def size(cls) -> int:
+        return len(cls._data)
 
     @classmethod
     def update(cls, data: Optional[Iterable[str]]) -> None:
@@ -964,6 +952,7 @@ class Session:
     @classmethod
     def set_process(cls, p: Process) -> None:
         cls._process = p
+        assert_write(CONF_PATH, True)
 
     @classmethod
     def terminate(cls) -> None:

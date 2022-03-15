@@ -19,23 +19,23 @@ if os.path.isfile("config.env"):
     load_dotenv("config.env")
 
 
-async def genStrSession() -> None:  # pylint: disable=missing-function-docstring
+async def string() -> None:  # pylint: disable=missing-function-docstring
     async with Client(
         "Userge",
         api_id=int(os.environ.get("API_ID") or input("Enter Telegram APP ID: ")),
         api_hash=os.environ.get("API_HASH") or input("Enter Telegram API HASH: "),
     ) as userge:
         print("\nprocessing...")
-        doneStr = "sent to saved messages!"
+        out = "sent to saved messages!"
         try:
             await userge.send_message(
-                "me", f"#USERGE #HU_STRING_SESSION\n\n`{await userge.export_session_string()}`"
+                "me", f"#USERGE #SESSION_STRING\n\n`{await userge.export_session_string()}`"
             )
         except UserIsBot:
-            doneStr = "successfully printed!"
+            out = "successfully printed!"
             print(await userge.export_session_string())
-        print(f"Done !, session string has been {doneStr}")
+        print(f"Done !, session string has been {out}")
 
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(genStrSession())
+    asyncio.get_event_loop().run_until_complete(string())

@@ -71,6 +71,7 @@ def init_repos() -> None:
     plugins = {}
     core_version = Repos.get_core().info.count
     client_type = get_client_type()
+    os_type = dict(posix='linux', nt='windows').get(os.name, os.name)
 
     for repo in Repos.iter_repos():
         if repo.failed:
@@ -97,6 +98,10 @@ def init_repos() -> None:
                 constraint = Constraints.match(plg)
                 if constraint:
                     reason = f"constraint {constraint}"
+                    break
+
+                if conf.os and conf.os != os_type:
+                    reason = f"incompatible os type {os_type}, required: {conf.os}"
                     break
 
                 if conf.min_core and conf.min_core > core_version:
@@ -236,8 +241,9 @@ def install_req() -> None:
     if pip:
         Requirements.update(pip.split())
 
-    if Requirements.has():
-        log("Installing Requirements ...")
+    size = Requirements.size()
+    if size > 0:
+        log(f"Installing Requirements ({size}) ...")
 
         code, err = Requirements.install()
         if code:
