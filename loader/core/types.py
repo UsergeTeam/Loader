@@ -955,7 +955,8 @@ class Session:
     @classmethod
     def set_process(cls, p: Process) -> None:
         cls._process = p
-        assert_write(CONF_PATH, True)
+        if exists(CONF_PATH):
+            assert_write(CONF_PATH, True)
 
     @classmethod
     def terminate(cls) -> None:
