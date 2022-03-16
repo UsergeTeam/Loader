@@ -13,7 +13,7 @@ class RepoInfo:
         self.url = url
         self.count = 0
         self.max_count = 0
-        self.branches = set()
+        self.branches = []
 
     @classmethod
     def parse(cls, id_: int, priority: int, branch: str,
