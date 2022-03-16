@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from base64 import urlsafe_b64decode
-from os.path import isfile
+from os.path import exists, isfile
 from shutil import which
 from struct import unpack, error as struct_error
 
