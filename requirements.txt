@@ -1,5 +1,5 @@
 dnspython
 gitpython
 motor
-pyrogram
+pyrogram>=1.4.8
 python-dotenv
