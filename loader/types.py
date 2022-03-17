@@ -43,7 +43,11 @@ class Update:
     @classmethod
     def parse(cls, repo_url: str, commit: Commit) -> 'Update':
         summary = str(commit.summary)
+
         author = commit.author.name
+        if author == "None":
+            author = commit.committer.name
+
         version = commit.hexsha
         count = commit.count()
         url = repo_url.rstrip('/') + "/commit/" + version
