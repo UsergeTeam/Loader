@@ -11,8 +11,7 @@ RUN apt -qq install -y --no-install-recommends \
     gnupg2 \
     unzip \
     wget \
-    ffmpeg \
-    jq
+    ffmpeg
 
 # install chrome
 RUN mkdir -p /tmp/ && \
