@@ -125,9 +125,19 @@ def init_repos() -> None:
 
                 if conf.envs:
                     for env in conf.envs:
-                        if not os.environ.get(env):
-                            reason = f"env {env} is required"
-                            break
+                        if '|' in env:
+                            envs = env.split('|')
+                            for e in envs:
+                                if e and os.environ.get(e.strip()):
+                                    break
+                            else:
+                                reason = f"any one of these envs are required: {', '.join(filter(None, envs))}"
+                            if reason:
+                                break
+                        else:
+                            if not os.environ.get(env):
+                                reason = f"env {env} is required"
+                                break
 
                     if reason:
                         break
