@@ -131,7 +131,7 @@ def init_repos() -> None:
                                 if e and os.environ.get(e.strip()):
                                     break
                             else:
-                                reason = f"any one of these envs are required: {', '.join(filter(None, envs))}"
+                                reason = f"any one of these envs are required: {env.replace('|', ',')}"
                             if reason:
                                 break
                         else:
