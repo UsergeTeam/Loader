@@ -41,6 +41,14 @@ def fetch_core() -> None:
     core.fetch()
 
 
+@on(job.FETCH_REPO)
+def fetch_repo(repo_id: int) -> None:
+    repo = Repos.get(repo_id)
+    if repo:
+        repo.init()
+        repo.fetch()
+
+
 @on(job.FETCH_REPOS)
 def fetch_repos() -> None:
     for repo in Repos.iter_repos():

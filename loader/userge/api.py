@@ -1,6 +1,7 @@
 __all__ = [
     'restart',
     'fetch_core',
+    'fetch_repo',
     'fetch_repos',
     'get_core',
     'get_repo',
@@ -47,6 +48,15 @@ async def fetch_core() -> None:
     fetch data from the default remote and update the local core repository.
     """
     return await send_and_async_wait(FETCH_CORE)
+
+
+async def fetch_repo(repo_id: int) -> None:
+    """
+    fetch data from the default remote and update this local plugins repository.
+    Args:
+        repo_id: id from the RepoInfo object. hint: get_repos()
+    """
+    return await send_and_async_wait(FETCH_REPO, repo_id)
 
 
 async def fetch_repos() -> None:
