@@ -12,7 +12,7 @@ from .checks import do_checks
 from .menu import main_menu
 from .methods import fetch_core, fetch_repos
 from .types import Repos, Constraints, Sig, Requirements, Session, Tasks
-from .utils import log, error, get_client_type, safe_url, grab_conflicts, clean_core, \
+from .utils import log, error, call, get_client_type, safe_url, grab_conflicts, clean_core, \
     clean_plugins, print_logo
 from .. import __version__
 from ..userge.main import run
@@ -45,7 +45,13 @@ def init_core() -> None:
 
     if loader_version:
         if __version__ < loader_version:
-            error(f"loader update required!, min version: {loader_version} current: {__version__}")
+            log("\tUpdating loader to latest ...")
+
+            code, err = call("git", "pull")
+            if code:
+                error(f"error code: [{code}]\n{err}")
+
+            raise InterruptedError
 
     Requirements.update(core.grab_req())
 
@@ -270,6 +276,8 @@ def initialize() -> None:
         do_checks()
         check_args()
         run_loader()
+    except InterruptedError:
+        raise
     except Exception as e:
         error(str(e))
 

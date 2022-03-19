@@ -903,14 +903,14 @@ class Requirements:
             data = cls._data.copy()
             cls._data.clear()
 
-            cls._upgrade_pip()
-            return call(sys.executable, '-m', 'pip', 'install', '--no-warn-script-location', *data)
+            cls._install('--upgrade', 'pip')
+            return cls._install('--no-warn-script-location', *data)
 
         return 0, ''
 
-    @classmethod
-    def _upgrade_pip(cls) -> None:
-        call(sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip')
+    @staticmethod
+    def _install(*args: str) -> Tuple[int, str]:
+        return call(sys.executable, '-m', 'pip', 'install', *args)
 
 
 class Tasks:
