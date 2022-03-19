@@ -267,10 +267,7 @@ class _BaseRepo:
         if self._git.head.is_detached or self._git.head.ref != head:
             head.checkout(force=True)
 
-        try:
-            self._git.remote().pull(head.name, force=True)
-        except GitCommandError:
-            self._git.head.reset(self._git.remote().refs[head.name].name, hard=True)
+        self._git.head.reset(self._git.remote().refs[head.name].name, working_tree=True)
 
         version = self.info.version
         commit = (self._get_commit(version) if version else None) or head.commit
