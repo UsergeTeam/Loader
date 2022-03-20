@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%d-%b-%y %H:%M:%S',
                     handlers=[
                         RotatingFileHandler(
-                            "logs/loader.log", maxBytes=20480, backupCount=10),
+                            "logs/loader.log", maxBytes=81920, backupCount=10),
                         logging.StreamHandler()
                     ])
 
