@@ -79,9 +79,15 @@ def _vars() -> None:
         error("Required SESSION_STRING or BOT_TOKEN var !")
 
     if string:
+        if len(string) == 351:
+            str_fmt = ">B?256sI?"
+        elif len(string) == 356:
+            str_fmt = ">B?256sQ?"
+        else:
+            str_fmt = ">BI?256sQ?"
+
         try:
-            unpack(f">B?256s{'I' if len(string) == 351 else 'Q'}?",
-                   urlsafe_b64decode(string + "=" * (-len(string) % 4)))
+            unpack(str_fmt, urlsafe_b64decode(string + "=" * (-len(string) % 4)))
         except struct_error:
             error("Invalid SESSION_STRING var !", "need a pyrogram session string")
 
