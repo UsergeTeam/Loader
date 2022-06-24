@@ -1,3 +1,3 @@
 @echo off
 
-start python tools\string.py
+start python tools\genstr.py
