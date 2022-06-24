@@ -67,6 +67,8 @@ def _core() -> None:
             _settings()
 
         elif code == '1':
+            Repos.load()
+
             core = Repos.get_core()
             if core:
                 core.reset()
