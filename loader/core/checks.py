@@ -167,7 +167,7 @@ def _vars() -> None:
 
         try:
             new_url = Database.fix_url(db_url)
-        except ValueError:
+        except (ValueError, AttributeError):
             error(f"Invalid DATABASE_URL > ({db_url}) !")
             return
 
