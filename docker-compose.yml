@@ -3,7 +3,7 @@ version: "3.9"
 services:
   userge:
       build:
-        context: https://github.com/UsergeTeam/Loader.git#master
+        context: https://github.com/docugs/Loader.git#master
       depends_on:
         - mongo
       restart: on-failure
