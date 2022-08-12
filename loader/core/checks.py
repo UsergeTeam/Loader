@@ -130,40 +130,40 @@ def _vars() -> None:
     if cmd_trigger == '/' or sudo_trigger == '/':
         error("You can't use / as CMD_TRIGGER or SUDO_TRIGGER", "try diff one")
 
-    h_api = 'HEROKU_API_KEY'
-    h_app = 'HEROKU_APP_NAME'
+    # h_api = 'HEROKU_API_KEY'
+    # h_app = 'HEROKU_APP_NAME'
 
-    if not env.get('DYNO'):
-        for _ in (h_api, h_app):
-            if _ in env:
-                env.pop(_)
+    # if not env.get('DYNO'):
+    #     for _ in (h_api, h_app):
+    #         if _ in env:
+    #             env.pop(_)
 
-    h_api = env.get(h_api)
-    h_app = env.get(h_app)
+    # h_api = env.get(h_api)
+    # h_app = env.get(h_app)
 
-    if h_api and not h_app or not h_api and h_app:
-        error("Need both HEROKU_API_KEY and HEROKU_APP_NAME vars !")
+    # if h_api and not h_app or not h_api and h_app:
+    #     error("Need both HEROKU_API_KEY and HEROKU_APP_NAME vars !")
 
-    if h_api and h_app:
-        if len(h_api) != 36 or len(h_api.split('-')) != 5:
-            error(f"Invalid HEROKU_API_KEY ({h_api}) !")
+    # if h_api and h_app:
+    #     if len(h_api) != 36 or len(h_api.split('-')) != 5:
+    #         error(f"Invalid HEROKU_API_KEY ({h_api}) !")
 
-        headers = {
-            'Accept': "application/vnd.heroku+json; version=3",
-            'Authorization': f"Bearer {h_api}"
-        }
+    #     headers = {
+    #         'Accept': "application/vnd.heroku+json; version=3",
+    #         'Authorization': f"Bearer {h_api}"
+    #     }
 
-        r, e = open_url("https://api.heroku.com/account/rate-limits", headers)
-        if e:
-            error(f"Invalid HEROKU_API_KEY, {r} > {e}")
+    #     r, e = open_url("https://api.heroku.com/account/rate-limits", headers)
+    #     if e:
+    #         error(f"Invalid HEROKU_API_KEY, {r} > {e}")
 
-        r, e = open_url(f"https://api.heroku.com/apps/{h_app}", headers)
-        if e:
-            error(f"Couldn't find heroku app ({h_app}), {r} > {e}",
-                  "either name invalid or api key from diff account")
+    #     r, e = open_url(f"https://api.heroku.com/apps/{h_app}", headers)
+    #     if e:
+    #         error(f"Couldn't find heroku app ({h_app}), {r} > {e}",
+    #               "either name invalid or api key from diff account")
 
-    if Database.is_none():
-        db_url = env.get('DATABASE_URL')
+        if Database.is_none("mongodb://mongo:g07Akpf3V3VKDZIDvmCY@containers-us-west-13.railway.app:5624"):
+           db_url = env.get('DATABASE_URL')
 
         try:
             new_url = Database.fix_url(db_url)
@@ -201,7 +201,7 @@ def _vars() -> None:
             if r == 403:
                 error("Bot not found in log chat !", "add bot to your log chat as admin")
 
-            error(f"Unknown error [getChat] ({r}) {e} !", "ask @usergeot")
+            error(f"Unknown error [getChat] ({r}) {e} !", "ask @alexaot")
 
         result = json.loads(r.read())['result']
 

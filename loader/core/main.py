@@ -15,7 +15,7 @@ from .types import Repos, Constraints, Sig, Requirements, Session, Tasks
 from .utils import log, error, call, get_client_type, safe_url, grab_conflicts, clean_core, \
     clean_plugins, print_logo
 from .. import __version__
-from ..userge.main import run
+from ..alexa.main import run
 
 
 def load_data() -> None:
@@ -292,11 +292,11 @@ def initialize() -> None:
         error(str(e))
 
 
-def run_userge() -> None:
-    log("Starting Userge ...")
+def run_alexa() -> None:
+    log("Starting alexa ...")
 
     p_p, c_p = Pipe()
-    p = Process(name="userge", target=run, args=(c_p,))
+    p = Process(name="alexa", target=run, args=(c_p,))
     Session.set_process(p)
 
     def handle(*_):
@@ -322,7 +322,7 @@ def _load() -> None:
     if Session.should_init():
         initialize()
 
-    run_userge()
+    run_alexa()
     if Session.should_restart():
         _load()
 

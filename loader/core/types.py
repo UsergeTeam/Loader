@@ -160,7 +160,7 @@ class _Plugin:
         return cls(path, cat, name, config, repo.name, repo.url)
 
     def copy(self) -> None:
-        copytree(self.path, join("userge", "plugins", self.cat, self.name))
+        copytree(self.path, join("alexa", "plugins", self.cat, self.name))
 
 
 class _BaseRepo:
@@ -423,7 +423,7 @@ class _CoreRepo(_BaseRepo):
 
         self._update()
 
-    def copy(self, source="userge", path="userge") -> None:
+    def copy(self, source="alexa", path="alexa") -> None:
         super().copy(source, path)
 
     def _update(self) -> None:

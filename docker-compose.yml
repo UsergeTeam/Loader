@@ -1,24 +1,24 @@
 version: "3.9"
 
 services:
-  userge:
+  alexa:
       build:
         context: https://github.com/docugs/Loader.git#master
       depends_on:
         - mongo
       restart: on-failure
       environment:
-          DATABASE_URL: mongodb://root:example@mongo
+          DATABASE_URL: mongodb://mongo:g07Akpf3V3VKDZIDvmCY@containers-us-west-13.railway.app:5624
       env_file:
         - config.env
 
   mongo:
       image: mongo
       volumes:
-        - mongo_userge:/data/db
+        - mongo_alexa:/data/db
       environment:
         MONGO_INITDB_ROOT_USERNAME: root
         MONGO_INITDB_ROOT_PASSWORD: example
 
 volumes:
-  mongo_userge:
+  mongo_alexa:

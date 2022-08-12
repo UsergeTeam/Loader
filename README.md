@@ -1,6 +1,6 @@
 # Loader
 
-This project helps to manage unlimited plugins repos with one [core repo](https://github.com/UsergeTeam/Userge).
+This project helps to manage unlimited plugins repos with one [core repo](https://github.com/alexaTeam/alexa).
 
 ## Main Features
 
@@ -21,15 +21,15 @@ This project helps to manage unlimited plugins repos with one [core repo](https:
 
 ## Plugins Repo Template
 
-you can fork and edit or refer our [official plugins repo](https://github.com/UsergeTeam/Userge-Plugins)
+you can fork and edit or refer our [official plugins repo](https://github.com/alexaTeam/alexa-Plugins)
 to get familiar with the new structure.
-Also, you can check [custom plugins repo](https://github.com/UsergeTeam/Custom-Plugins) to get a better idea.
+Also, you can check [custom plugins repo](https://github.com/alexaTeam/Custom-Plugins) to get a better idea.
 
 ## Custom Core Repo
 
 set these env vars
 
-* `CORE_REPO` - repo url (default | https://github.com/UsergeTeam/Userge)
+* `CORE_REPO` - repo url (default | https://github.com/alexaTeam/alexa)
 * `CORE_BRANCH` - branch name (default | master)
 
-## [Docker Guide](https://github.com/UsergeTeam/Loader/blob/master/Docker.md)
+## [Docker Guide](https://github.com/alexaTeam/Loader/blob/master/Docker.md)

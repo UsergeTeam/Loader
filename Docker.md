@@ -1,4 +1,4 @@
-# Docker Guide For Userge 🐳 #
+# Docker Guide For alexa 🐳 #
 
 ## Install docker ##
 - Follow the official docker [installation guide](https://docs.docker.com/engine/install/ubuntu/)
@@ -8,15 +8,15 @@
 ```sudo pip install docker-compose```
 - Also you can check other official methods of installing docker-compose [here](https://docs.docker.com/compose/install/)
 
-## Run Userge ##
+## Run alexa ##
 - We dont need to clone the repo (yeah Docker-compose does that for us)
 - Setup configs
     - Download the sample config file <br>
-        - ```mkdir userge && cd userge```
-        - ```wget https://raw.githubusercontent.com/UsergeTeam/Loader/master/config.env.sample -O config.env```
+        - ```mkdir alexa && cd alexa```
+        - ```wget https://raw.githubusercontent.com/alexaTeam/Loader/master/config.env.sample -O config.env```
         - ```vim config.env```
     - Download the yml file for docker-compose
-        - ```wget https://raw.githubusercontent.com/UsergeTeam/Loader/master/docker-compose.yml```
+        - ```wget https://raw.githubusercontent.com/alexaTeam/Loader/master/docker-compose.yml```
 - Finally start the bot <br>
 ```docker-compose up -d```
 - The bot should be running now <br>

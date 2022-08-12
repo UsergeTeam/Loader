@@ -206,11 +206,11 @@ def rmtree(path: str) -> None:
 
 
 def clean_core() -> None:
-    rmtree("userge")
+    rmtree("alexa")
 
 
 def clean_plugins() -> None:
-    plugins_path = join("userge", "plugins")
+    plugins_path = join("alexa", "plugins")
 
     for cat in os.listdir(plugins_path):
         if cat == "builtin":

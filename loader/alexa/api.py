@@ -283,8 +283,8 @@ async def add_constraints(c_type: str, data: List[str]) -> bool:
         data: list of constraints. a constraint can be
             a plugin name (ping),
             a category name (admin/),
-            a repo name followed by a plugin name (usergeteam.userge-plugins/ping) and
-            a repo name followed by a category name (usergeteam.userge-plugins/admin/).
+            a repo name followed by a plugin name (alexateam.alexa-plugins/ping) and
+            a repo name followed by a category name (alexateam.alexa-plugins/admin/).
 
     Returns:
         True if success and else False.
