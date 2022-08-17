@@ -1,0 +1,65 @@
+{
+    "name": "Mukesh Xd",
+    "logo": "https://te.legra.ph/file/53ce4ff720b2b604d14c1.jpg",
+    "description": "UserBot.",
+    "keywords": ["Mukesh", "telegram"],
+    "stack": "container",
+    "env": {
+        "DATABASE_URL": {
+            "description": "Enter Mongo db UrI https://cloud.mongodb.com/",
+            "required": true
+        },
+        "STRING_SESSION": {
+            "description": "Xd idk telethon or Pyrogram string session here",
+            "required": true
+        },
+        "LOG_CHANNEL_ID": {
+            "description": "Log Channel Id dae",
+            "required": true
+        },
+        "CUSTOM_PIP_PACKAGES": {
+            "description": "Custom pip packages which are seperated by spaces to install while starting the bot.",
+            "required": false
+        },
+        "HEROKU_API_KEY": {
+            "description": "get a Heroku API key from http://dashboard.heroku.com/account",
+            "required": true
+        },
+        "HEROKU_APP_NAME": {
+            "description": "Mukesh Papa ka name likh",
+            "required": false
+        },
+        "BOT_TOKEN": {
+            "description": "Start Group help bot nd /info (ur bot usernam)",
+            "required": false
+        },
+        "OWNER_ID": {
+            "description": "Enter you Tg id",
+            "required": false
+        },
+        "CMD_TRIGGER": {
+            "description": "Enter cmd like .,*-+! anyone",
+            "required": true
+        },            
+        "API_ID": {
+            "description": "telegram api id here",
+            "required": true
+        },
+        "SUDO_TRIGGER": {
+            "description": "Who have Access Your Account But Rearly Plugins there",
+            "required": true
+        },
+        "API_HASH": {
+            "description": "telegram api hash here",
+            "required": true
+        }
+    },
+    "buildpacks": [
+    {
+      "url": "heroku/python"
+    },
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+    }
+  ]
+}
