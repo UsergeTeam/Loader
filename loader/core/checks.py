@@ -29,17 +29,19 @@ def _git() -> None:
 def _py_version() -> None:
     log("Checking Python Version ...")
 
-    py_ver = sys.version_info[0] + sys.version_info[1] / 10
+    py_ver = tuple(sys.version_info[:2])
+    min_py = tuple(map(int, MIN_PY.split(".")))
+    max_py = tuple(map(int, MAX_PY.split(".")))
 
-    if py_ver < MIN_PY:
+    if py_ver < min_py:
         error(f"You MUST have a python version of at least {MIN_PY}.0 !",
               "upgrade your python version")
 
-    if py_ver > MAX_PY:
-        error(f"You MUST have a python version of at most {MAX_PY} !",
+    if py_ver > max_py:
+        error(f"You MUST have a python version of at most {MAX_PY}.X !",
               "downgrade your python version")
 
-    log(f"\tFound PYTHON - v{py_ver}.{sys.version_info[2]} ...")
+    log(f"\tFound PYTHON - v{'.'.join(map(str, sys.version_info[:3]))} ...")
 
 
 def _config_file() -> None:
