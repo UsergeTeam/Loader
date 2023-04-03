@@ -24,6 +24,7 @@ async def string() -> None:  # pylint: disable=missing-function-docstring
         "Userge",
         api_id=int(os.environ.get("API_ID") or input("Enter Telegram APP ID: ")),
         api_hash=os.environ.get("API_HASH") or input("Enter Telegram API HASH: "),
+        in_memory=True,
     ) as userge:
         print("\nprocessing...")
         out = "sent to saved messages!"
