@@ -34,7 +34,7 @@ ENV GOOGLE_CHROME_DRIVER /usr/bin/chromedriver
 ENV GOOGLE_CHROME_BIN /usr/bin/google-chrome-stable
 
 # install node-js
-RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     npm i -g npm
 
