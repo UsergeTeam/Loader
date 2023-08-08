@@ -1,5 +1,6 @@
-dnspython
+dnspython==2.3.0
 gitpython
+httpcore==0.17.2
 motor
 pyrogram>=2.0.30
 python-dotenv
