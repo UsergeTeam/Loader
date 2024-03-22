@@ -1,7 +1,7 @@
 from os import environ
 
 MIN_PY = "3.8"
-MAX_PY = "3.10"
+MAX_PY = "3.11"
 
 CONF_PATH = "config.env"
 
